@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no">
     <title>Fit canvas to viewport for mobile devices</title>
     <style>
         * {
@@ -47,8 +48,8 @@
         var canvas = new fabric.Canvas('c');
 
         var rect = new fabric.Rect({
-            left: 100,
-            top: 100,
+            left: 120,
+            top: 120,
             fill: 'red',
             width: 100,
             height: 100,
@@ -56,10 +57,10 @@
         });
 
         var rect1 = new fabric.Rect({
-            width: 50,
-            height: 50,
-            top: 200,
-            left: 200,
+            width: 60,
+            height: 60,
+            top: 250,
+            left: 250,
             fill: 'green',
             hasControls: false
         });
@@ -75,7 +76,7 @@
             canvas.forEachObject(function(obj) {
                 if (obj === options.target) return;
                 obj.setOpacity(options.target.intersectsWithObject(obj) ? 0.5 : 1);
-                if ((Math.abs(obj.oCoords.tl.x - options.target.oCoords.tl.x) < 10) && (Math.abs(obj.oCoords.tl.y - options.target.oCoords.tl.y) < 10)) {
+                if ((Math.abs(obj.oCoords.tl.x - options.target.oCoords.tl.x) < 15) && (Math.abs(obj.oCoords.tl.y - options.target.oCoords.tl.y) < 15)) {
                     options.target.set({'left': obj.oCoords.tl.x, 'top': obj.oCoords.tl.y});
                 }
             });
