@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Backbone.js: some notes</title>
+
+		<meta name="description" content="Some notes of developing on backbone.js.">
+		<meta name="author" content="Roman Alekseev">
+
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<link rel="stylesheet" href="css/reveal.min.css">
+		<link rel="stylesheet" href="css/theme/default.css" id="theme">
+
+		<!-- For syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- If the query includes 'print-pdf', include the PDF print sheet -->
+		<script>
+			if( window.location.search.match( /print-pdf/gi ) ) {
+				var link = document.createElement( 'link' );
+				link.rel = 'stylesheet';
+				link.type = 'text/css';
+				link.href = 'css/print/pdf.css';
+				document.getElementsByTagName( 'head' )[0].appendChild( link );
+			}
+		</script>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+				<section>
+					<h1>Backbone.js</h1>
+					<h3>Some notes</h3>
+					<p>
+						<small>by Roman Alekseev</small>
+					</p>
+				</section>
+
+                <section data-background="http://hablatumusica.com/wp-content/uploads/2013/09/La-m%C3%BAsica-de-Breaking-Bad.jpg">
+
+                    <div style="background-color: rgba(49,52,55, 0.8); display: inline-block; padding: 20px;">
+                        <h2>Agenda</h2>
+                        <ul>
+                            <li>Part 1: Introduction</li>
+                            <li>Part 2: First App</li>
+                            <li>Part 3: Best Practicies</li>
+                        </ul>
+                    </div>
+
+                </section>
+
+                <section>
+                    <h2>Why English?</h2>
+                    <h2 class="fragment roll-in">Вот почему</h2>
+                </section>
+
+                <section>
+                    <h1>Part 1</h1>
+                    <h2>Introduction</h2>
+                </section>
+
+                <section data-background="https://lh3.googleusercontent.com/-VhMRZct5jZI/TYMXvoLF3eI/AAAAAAAAB_Y/6ab1ivjzsmg/s1600/Chicken_bones.jpg">
+                    <h2 style="color: #000;">Backbone.js</h2>
+                    <ul style="color: #000;">
+                        <li class="fragment roll-in">Author: Jeremy Ashkenas (underscore.js, cofeescript)</li>
+                        <li class="fragment roll-in">Size: 6.5kb, packed and gzipped</li>
+                        <li class="fragment roll-in">+ underscore dependency 5.0kb</li>
+                        <li class="fragment roll-in"> 13 oct 2010</li>
+                        <li class="fragment roll-in">Current version: 1.1.2</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2>Why backbone?</h2>
+                    <img src="http://voidcanvas.com/wp-content/uploads/2014/01/select-a-js-framework.png" alt=""/>
+                    <ul>
+                        <li class="fragment roll-in">Low barrier of entry</li>
+                        <li class="fragment roll-in">Good for not big apps</li>
+                        <li class="fragment roll-in">Built-in REST API</li>
+                        <li class="fragment roll-in">Just because</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2>Backbone's MVC</h2>
+                    <ul>
+                        <li>Model/Collection</li>
+                        <li>Template (View)</li>
+                        <li>View (Controller)</li>
+                        <li class="fragment roll-in">Router?<br/><img style="width: 200px;" src="http://static.businessinsider.com/image/531932116bb3f7d9408b4567/image.jpg" alt=""/></li>
+                    </ul>
+                    <br/><br/>
+                    <p class="fragment roll-in">View + Router = Controller</p>
+                    <p class="fragment roll-in">So kind of MV*</p>
+
+                </section>
+
+                <section>
+                    <h2>Backbone's MVC</h2>
+                    <img src="http://addyosmani.github.io/backbone-fundamentals/img/backbone_mvc.png" alt=""/>
+                </section>
+
+                <section data-background="http://1.bp.blogspot.com/-n9Te6edIaJo/UoJaOrqrXoI/AAAAAAABeAc/6d-DJ2Fgk-M/s1600/broen-the-bridge-2.jpg">
+                    <h2>Collection?</h2>
+                    <pre><code data-trim class="javascript">
+var Todo = Backbone.Model.extend({
+    defaults: {
+        title: '',
+        completed: false
+    }
+});
+
+var TodosCollection = Backbone.Collection.extend({
+    model: Todo
+});
+                    </code></pre>
+                </section>
+
+                <section>
+                    <h2>View</h2>
+                    <img src="http://www.bitrebels.com/wp-content/uploads/2010/11/Blind-Spot-Windshield-Monitor-4.jpg" alt=""/>
+                    <ul>
+                        <li>Manipulates the DOM</li>
+                        <li>Delegates DOM events</li>
+                        <li>Has a Model/Collection</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2>Template (Underscore.js)</h2>
+                    <pre><code data-trim class="javascript">
+<script type="text/template" id="artifact-template">
+    <li>
+        <%= text %>
+    </li>
+</script>
+                    </code></pre>
+                </section>
+
+                <section>
+                    <h2>Router</h2>
+                    <pre><code data-trim>
+var Router = Backbone.Router.extend({
+    /* define the route and function maps for this router */
+    routes: {
+        "" : "homePage",
+        "about" : "aboutPage",
+        "search/:query" : "search"
+    },
+
+    homePage: function(){},
+    aboutPage: function(){},
+    search: function(query){},
+});
+                    </code></pre>
+                    <ul>
+                        <li>Maps urls to function</li>
+                        <li>Enable history/bookmarking</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h1>Part 2</h1>
+                    <h2>First App</h2>
+                </section>
+
+                <section>
+                    <h2>Inserting libs and stuff</h2>
+                    <pre><code data-trim class="javascript">
+<!-- load the bootstrap stylesheet -->
+<link href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" media="all" rel="stylesheet" type="text/css" />
+<!-- load the libraries we need -->
+<script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/zepto/1.1.3/zepto.min.js"></script>
+<script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"></script>
+<script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.2/backbone-min.js"></script>
+<!-- load our scripts -->
+<script type="text/javascript" src="js/note_router.js"></script>
+<script type="text/javascript" src="js/models/note_model.js"></script>
+<script type="text/javascript" src="js/views/note_index.js"></script>
+<script type="text/javascript" src="js/views/note_row.js"></script>
+<script type="text/javascript" src="js/views/note_new.js"></script>
+<script type="text/javascript" src="js/views/note_edit.js"></script>
+<script type="text/javascript" src="js/views/note_show.js"></script>
+                    </code></pre>
+                    <p class="fragment roll-in"><b>TODO:</b> add Require.js.</p>
+                </section>
+
+                <section>
+                    <h2>Create Model</h2>
+                    <pre><code data-trim class="javascript">
+APP.NoteModel = Backbone.Model.extend({
+    // you can set any defaults you would like here
+    defaults: {
+        title: "",
+        description: "",
+        author: ""
+    },
+
+    validate: function (attrs) {
+        ...
+    }
+});
+
+APP.NoteCollection = Backbone.Collection.extend({
+// Reference to this collection's model.
+model: APP.NoteModel
+});
+                    </code></pre>
+                </section>
+
+                <section>
+                    <h2>Create Router</h2>
+                    <pre><code data-trim class="javascript">
+APP.NoteRouter = Backbone.Router.extend({
+    routes: {
+        "note/new": "create",
+        "notes/index": "index",
+        "note/:id/edit": "edit",
+        "note/:id/view": "show"
+    },
+
+    initialize: function (options) {
+        this.notes = options.notes;
+        // this is debug only to demonstrate how the backbone collection / models work
+        this.notes.bind('reset', this.updateDebug, this);
+        this.notes.bind('add', this.updateDebug, this);
+        this.notes.bind('remove', this.updateDebug, this);
+        this.index();
+    },
+
+    updateDebug: function () {
+        $('#output').text(JSON.stringify(this.notes.toJSON(), null, 4));
+    },
+
+    index: function () {
+        this.currentView = new APP.NoteIndexView({
+            notes: this.notes
+        });
+        $('#primary-content').html(this.currentView.render().el);
+    },
+
+    create: function () {...},
+    edit: function (id) {...},
+    show: function (id) {...}
+});
+                    </code></pre>
+                </section>
+
+            <section>
+                <section>
+                    <h2>Create View <small>(example of index)</small></h2>
+                    <pre><code data-trim class="javascript">
+APP.NoteIndexView = Backbone.View.extend({
+    // the constructor
+    initialize: function (options) {
+        // model is passed through
+        this.notes = options.notes;
+        this.notes.bind('reset', this.addAll, this);
+    },
+
+    // populate the html to the dom
+    render: function () {
+        this.$el.html($('#indexTemplate').html());
+        this.addAll();
+        return this;
+    },
+
+    addAll: function () {
+        // clear out the container each time you render index
+        this.$el.find('tbody').children().remove();
+        _.each(this.notes.models, $.proxy(this, 'addOne'));
+    },
+
+    addOne: function (note) {
+        var view = new APP.NoteRowView({
+            notes: this.notes,
+            note: note
+        });
+        this.$el.find("tbody").append(view.render().el);
+    }
+});
+                    </code></pre>
+                </section>
+
+                <section>
+                    <h2>Create View <small>(example of row)</small></h2>
+
+                    <pre><code data-trim class="javascript">
+APP.NoteRowView = Backbone.View.extend({
+    // the wrapper defaults to div, so only need to set this if you want something else
+    // like in this case we are in a table so a tr
+    tagName: "tr",
+    // functions to fire on events
+    events: {
+        "click a.delete": "destroy"
+    },
+
+    // the constructor
+    initialize: function (options) {
+        // model is passed through
+        this.note  = options.note;
+        this.notes = options.notes;
+    },
+
+    // populate the html to the dom
+    render: function () {
+        this.$el.html(_.template($('#rowTemplate').html(), this.note.toJSON()));
+        return this;
+    },
+
+    // delete the model
+    destroy: function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        // we would call
+        // this.model.destroy();
+        // which would make a DELETE call to the server with the id of the item
+        this.notes.remove(this.note);
+        this.$el.remove();
+    }
+});
+                    </code></pre>
+                </section>
+
+            </section>
+
+            <section>
+
+                <section>
+                    <h2>Create Templates</h2>
+                    <h3>Index template:</h3>
+                    <pre><code data-trim class="javascript">
+<script type="text/template" id="indexTemplate">
+    <div class="well">
+        <a class="btn btn-block btn-large btn-info" href="#note/new">Create New Note</a>
+    </div>
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th width="20%">Title</th>
+            <th width="20%">Author</th>
+            <th>Description</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</script>
+                    </code></pre>
+                </section>
+
+                <section>
+                    <h2>Create Templates</h2>
+                    <h3>Row template:</h3>
+                    <pre><code data-trim class="javascript">
+<script type="text/template" id="rowTemplate">
+    <td>
+        <a href="#note/<%= id %>/view"><%= title %></a>
+    </td>
+    <td><%= author %></td>
+    <td><% print(description.substring(0, 100)) %>...</td>
+    <td>
+        <a href="#" class="delete btn btn-danger btn-small">delete</a>
+    </td>
+</script>
+                    </code></pre>
+                </section>
+
+            </section>
+
+            <section>
+                <h2>Initialize App</h2>
+                <pre><code data-trim class="javascript">
+var router = new APP.NoteRouter({
+    notes: new APP.NoteCollection()
+});
+
+// we manually pass in the initial data, but this would be called with a collection.fetch() normally
+router.notes.reset([
+    {
+        "title": "Example Note 1",
+        "id": "45",
+        "author": "David Morrow",
+        "description": "Pinterest biodiesel excepteur, ad etsy gluten-free semiotics ennui before they sold out irony ut deserunt jean shorts."
+    },
+    ...
+]);
+
+// now that everyting is setup we tell backbone to watch the urls
+Backbone.history.start();
+                </code></pre>
+            </section>
+
+            <section>
+                <h2>Result</h2>
+                <p>Few views more...</p>
+                <img class="fragment roll-in" src="https://api.monosnap.com/image/download?id=2m1MO4rV30ZmOjrFuTq6pzJueXdzTf" alt=""/>
+            </section>
+
+            <section>
+                <h1>Part 3</h1>
+                <h2>Best Practicies</h2>
+            </section>
+
+            <section>
+                <h3>Creating memory leaks by not unbinding events</h3>
+                <pre><code data-trim class="javascript">
+var SomeModelView = Backbone.View.extend({
+    initialize: function() {
+        this.model.on('change', this.render, this);
+    },
+    render: function() {
+        // render a template
+    }
+});
+                </code></pre>
+                <p class="fragment roll-in">When calling the .remove() method, the "change" event handler (our render function) is still bound.</p>
+
+                <pre class="fragment roll-in"><code data-trim class="javascript">
+initialize: function() {
+    this.listenTo(this.model, 'change', this.render);
+}
+                </code></pre>
+            </section>
+
+            <section>
+                <h3>Causing multiple DOM reflows when rendering collections</h3>
+                <pre><code data-trim class="javascript">
+render: function() {
+    var self = this;
+    this.$el.empty();
+    // render each subview, appending to our root element
+    _.each(this._views, function(subview) {
+        self.$el.append(subview.render().el);
+    });
+}
+                </code></pre>
+                <p class="fragment roll-in">DOM reflow after .append - meaning that the browser has to recalculate the position and size of every element in the DOM tree</p>
+                <pre class="fragment roll-in"><code data-trim class="javascript">
+render: function() {
+    this.$el.empty();
+    var container = document.createDocumentFragment();
+    // render each subview, appending to our root element
+    _.each(this._views, function(subview) {
+        container.appendChild(subview.render().el)
+    });
+    this.$el.append(container);
+}
+                </code></pre>
+            </section>
+
+            <section>
+                <h2>Avoid of using el in views if possible</h2>
+                <pre><code data-trim class="javascript">
+app.AppView = Backbone.View.extend({
+    // Instead of generating a new element, bind to the existing skeleton of
+    // the App already present in the HTML.
+    el: '#todoapp'
+}
+                </code></pre>
+            </section>
+
+            <section>
+                <h2>Clean up after yourself</h2>
+                <pre><code data-trim class="javascript">
+loadView : function(view) {
+    this.view && this.view.remove();
+    this.view = view;
+}
+                </code></pre>
+                <img class="fragment roll-in" src="https://api.monosnap.com/image/download?id=OI94aSIk5TahycqUp4j2hwCWd1Dd3b" alt=""/>
+            </section>
+            
+            <section>
+                <h2>Links:</h2>
+                <ul>
+                    <li><a href="https://github.com/dperrymorrow/example-backbone-app">https://github.com/dperrymorrow/example-backbone-app</a></li>
+                    <li><a href="http://www.smashingmagazine.com/2013/08/09/backbone-js-tips-patterns/">http://www.smashingmagazine.com/2013/08/09/backbone-js-tips-patterns/</a></li>
+                    <li><a href="http://mikeygee.com/blog/backbone.html">http://mikeygee.com/blog/backbone.html</a></li>
+                    <li><a href="http://backbonejs.org/">http://backbonejs.org/</a></li>
+                    <li><a href="http://ozkatz.github.io/avoiding-common-backbonejs-pitfalls.html">http://ozkatz.github.io/avoiding-common-backbonejs-pitfalls.html</a></li>
+                    <li><a href="https://github.com/Maluen/Backbone-Debugger">Backbone Debugger Chrome extension</a></li>
+                    <li><a href="http://addyosmani.github.io/backbone-fundamentals">Developing Backbone.js Applications</a></li>
+                </ul>
+            </section>
+
+            <section>
+                <h1>Thank you</h1>
+                <h2>Less questions please :)</h2>
+            </section>
+
+			</div>
+
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.min.js"></script>
+
+		<script>
+
+			// Full list of configuration options available here:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+
+				theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+				transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+
+				// Parallax scrolling
+				// parallaxBackgroundImage: 'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg',
+				// parallaxBackgroundSize: '2100px 900px',
+
+				// Optional libraries used to extend on reveal.js
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+					{ src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+				]
+			});
+
+		</script>
+
+	</body>
+</html>
