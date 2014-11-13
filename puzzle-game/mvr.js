@@ -9,8 +9,8 @@ var mvr = (function() {
     }
 
     Shape.prototype.draw = function(ctx) {
-      ctx.fillStyle = this.fill;
-      ctx.fillRect(this.x, this.y, this.w, this.h);
+        ctx.fillStyle = this.fill;
+        ctx.fillRect(this.x, this.y, this.w, this.h);
     };
 
     Shape.prototype.contains = function(mx, my) {
@@ -18,11 +18,40 @@ var mvr = (function() {
                 (this.y <= my) && (this.y + this.h >= my);
     };
 
+
+    function Picture(src, x, y, w, h) {
+        this.src = src || '';
+        this.x = x || 0;
+        this.y = y || 0;
+        this.w = w || 0;
+        this.h = h || 0;
+    }
+
+    Picture.prototype.draw = function(ctx) {
+        var pic = new Image();
+        pic.src = this.src;
+
+        var picture = this;
+        pic.onload = function() {
+            if (picture.w === 0) { picture.w = pic.naturalWidth; }
+            if (picture.h === 0) { picture.h = pic.naturalHeight; }
+
+            ctx.drawImage(pic, picture.x, picture.y, picture.w, picture.h);
+        }
+    };
+
+    Picture.prototype.contains = function(mx, my) {
+        return  (this.x <= mx) && (this.x + this.w >= mx) &&
+                (this.y <= my) && (this.y + this.h >= my);
+    };
+
+
     function CanvasState(canvas) {
         this.canvas = canvas;
         this.width = canvas.width;
         this.height = canvas.height;
         this.ctx = canvas.getContext('2d');
+
 
         if (document.defaultView && document.defaultView.getComputedStyle) {
             this.stylePaddingLeft = parseInt(document.defaultView.getComputedStyle(canvas, null)['paddingLeft'], 10)      || 0;
@@ -45,13 +74,6 @@ var mvr = (function() {
         this.dragoffx = 0;
         this.dragoffy = 0;
 
-        // **** Then events! ****
-
-        // This is an example of a closure!
-        // Right here "this" means the CanvasState. But we are making events on the Canvas itself,
-        // and when the events are fired on the canvas the variable "this" is going to mean the canvas!
-        // Since we still want to use this particular CanvasState in the events we have to save a reference to it.
-        // This is our reference!
         var myState = this;
 
         //fixes a problem where double clicking causes text to get selected on the canvas
@@ -87,7 +109,6 @@ var mvr = (function() {
 //        }, true);
 
         canvas.addEventListener('touchstart', function(e) {
-            //console.log(e)
             var mouse = myState.getTouch(e);
             var mx = mouse.x;
             var my = mouse.y;
@@ -97,6 +118,7 @@ var mvr = (function() {
             for (var i = l-1; i >= 0; i--) {
                 if (shapes[i].contains(mx, my)) {
                     var mySel = shapes[i];
+
                     // Keep track of where in the object we clicked
                     // so we can move it smoothly (see mousemove)
                     myState.dragoffx = mx - mySel.x;
@@ -116,7 +138,6 @@ var mvr = (function() {
         }, true);
 
 //        canvas.addEventListener('mousemove', function(e) {
-//            console.log(e)
 //            if (myState.dragging){
 //                var mouse = myState.getMouse(e);
 //                // We don't want to drag the object by its top-left corner, we want to drag it
@@ -129,7 +150,6 @@ var mvr = (function() {
 
         canvas.addEventListener('touchmove', function(e) {
             e.preventDefault();
-            //console.log(e)
             if (myState.dragging){
                 var mouse = myState.getTouch(e);
                 // We don't want to drag the object by its top-left corner, we want to drag it
@@ -144,22 +164,15 @@ var mvr = (function() {
 //            myState.dragging = false;
 //        }, true);
 
-         canvas.addEventListener('touchend', function(e) {
+        canvas.addEventListener('touchend', function(e) {
             myState.dragging = false;
         }, true);
 
-        // double click for making new shapes
-        canvas.addEventListener('dblclick', function(e) {
-            var mouse = myState.getMouse(e);
-            myState.addShape(new Shape(mouse.x - 10, mouse.y - 10, 20, 20, 'rgba(0,255,0,.6)'));
-        }, true);
-
-        // **** Options! ****
 
         this.selectionColor = '#CC0000';
         this.selectionWidth = 2;  
-        this.interval = 30;
-        setInterval(function() { myState.draw();}, myState.interval);
+        this.interval = 15;
+        setInterval(function() { myState.draw(); }, myState.interval);
     }
 
     CanvasState.prototype.addShape = function(shape) {
@@ -190,10 +203,10 @@ var mvr = (function() {
             // draw selection
             // right now this is just a stroke along the edge of the selected Shape
             if (this.selection != null) {
-              ctx.strokeStyle = this.selectionColor;
-              ctx.lineWidth = this.selectionWidth;
-              var mySel = this.selection;
-              ctx.strokeRect(mySel.x, mySel.y, mySel.w, mySel.h);
+                ctx.strokeStyle = this.selectionColor;
+                ctx.lineWidth = this.selectionWidth;
+                var mySel = this.selection;
+                ctx.strokeRect(mySel.x, mySel.y, mySel.w, mySel.h);
             }
 
             this.valid = true;
@@ -203,35 +216,34 @@ var mvr = (function() {
 
     // Creates an object with x and y defined, set to the mouse position relative to the state's canvas
     // If you wanna be super-correct this can be tricky, we have to worry about padding and borders
-    CanvasState.prototype.getMouse = function(e) {
-        var element = this.canvas,
-            offsetX = 0,
-            offsetY = 0,
-            mx,
-            my;
+//    CanvasState.prototype.getMouse = function(e) {
+//        var element = this.canvas,
+//            offsetX = 0,
+//            offsetY = 0,
+//            mx,
+//            my;
+//
+//        // Compute the total offset
+//        if (element.offsetParent !== undefined) {
+//            do {
+//              offsetX += element.offsetLeft;
+//              offsetY += element.offsetTop;
+//            } while ((element = element.offsetParent));
+//        }
+//
+//        // Add padding and border style widths to offset
+//        // Also add the <html> offsets in case there's a position:fixed bar
+//        offsetX += this.stylePaddingLeft + this.styleBorderLeft + this.htmlLeft;
+//        offsetY += this.stylePaddingTop + this.styleBorderTop + this.htmlTop;
+//
+//        mx = e.pageX - offsetX;
+//        my = e.pageY - offsetY;
+//
+//        // We return a simple javascript object (a hash) with x and y defined
+//        return {x: mx, y: my};
+//    };
 
-        // Compute the total offset
-        if (element.offsetParent !== undefined) {
-            do {
-              offsetX += element.offsetLeft;
-              offsetY += element.offsetTop;
-            } while ((element = element.offsetParent));
-        }
 
-        // Add padding and border style widths to offset
-        // Also add the <html> offsets in case there's a position:fixed bar
-        offsetX += this.stylePaddingLeft + this.styleBorderLeft + this.htmlLeft;
-        offsetY += this.stylePaddingTop + this.styleBorderTop + this.htmlTop;
-console.log(e)
-        mx = e.pageX - offsetX;
-        my = e.pageY - offsetY;
-
-        // We return a simple javascript object (a hash) with x and y defined
-        return {x: mx, y: my};
-    };
-
-        // Creates an object with x and y defined, set to the mouse position relative to the state's canvas
-    // If you wanna be super-correct this can be tricky, we have to worry about padding and borders
     CanvasState.prototype.getTouch = function(e) {
         var element = this.canvas,
             offsetX = 0,
@@ -255,25 +267,20 @@ console.log(e)
         mx = e.touches[0].clientX - offsetX;
         my = e.touches[0].clientY - offsetY;
 
-        // We return a simple javascript object (a hash) with x and y defined
         return {x: mx, y: my};
     };
 
-    // If you dont want to use <body onLoad='init()'>
-    // You could uncomment this init() reference and place the script reference inside the body tag
-    //init();
 
     return {
         init: function () {
             var s = new CanvasState(document.getElementById('c'));
-            s.addShape(new Shape(40,40,50,50)); // The default is gray
-            s.addShape(new Shape(60,140,40,60, 'lightskyblue'));
-            // Lets make some partially transparent
+
             s.addShape(new Shape(80,150,60,30, 'rgba(127, 255, 212, .5)'));
             s.addShape(new Shape(125,80,30,80, 'rgba(245, 222, 179, .7)'));
+
+            s.addShape(new Picture('i/ing/hexagon.png', 10, 10));
+            s.addShape(new Picture('i/ing/square.png', 60, 10));
         }
     };
-
-    // Now go make something amazing!
 
 })();
