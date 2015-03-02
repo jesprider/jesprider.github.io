@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <meta name='viewport' content='width=device-width,initial-scale=1,user-scalable=no'>
+    <link rel="stylesheet" href="app.css"/>
+</head>
+<body>
+
+<div class="container">
+  <canvas id="canvas">
+  Ой, ваш браузер не поддерживает HTML5!
+  </canvas>
+
+  <div id="mainMenu">
+  <h1>doodle jump</h1>
+  <h3>на HTML5,</h3>
+  <h3>...от <a href="http://twitter.com/solitarydesigns/" target="_blank">Kushagra Agarwal</a></h3>
+
+  <p class="info">
+  Используйте
+  <span class="key left"><</span>
+  <span class="key right">></span>
+  и space, чтобы начать заново
+  </p>
+  <a class="button" href="javascript:init()">Play</a>
+  </div>
+
+  <div id="gameOverMenu">
+  <h1>Вы проиграли!</h1>
+  <h3 id="go_score">Ваш результат 0 очков</h3>
+
+  <a class="button" href="javascript:reset()">Заново</a>
+
+  </div>
+
+
+  <!-- Preloading image <img rel="usm" src="http://yraaa.ru/smiles/wink.gif" border="0" align="absmiddle" alt=";)" /> -->
+  <img id="sprite" src="images/2WEhF.png"/>
+
+  <div id="scoreBoard">
+  <p id="score">0</p>
+  </div>
+
+    <div id="js-left" class="move left"></div>
+    <div id="js-right" class="move right"></div>
+</div>
+
+<div id="audio"></div>
+<script type="text/javascript" src="app.js"></script>
+</body>
+</html>
