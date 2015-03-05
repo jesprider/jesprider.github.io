@@ -24,32 +24,6 @@
         window.cancelAnimationFrame = function(id) {
             clearTimeout(id);
         };
-
-    /**
-     * Bind function polyfill from MDN
-     */
-    if (!Function.prototype.bind) {
-        Function.prototype.bind = function(oThis) {
-            if (typeof this !== 'function') {
-                throw new TypeError('Function.prototype.bind - what is trying to be bound is not callable');
-            }
-
-            var aArgs = Array.prototype.slice.call(arguments, 1),
-                fToBind = this,
-                fNOP    = function() {},
-                fBound  = function() {
-                    return fToBind.apply(this instanceof fNOP && oThis
-                        ? this
-                        : oThis,
-                        aArgs.concat(Array.prototype.slice.call(arguments)));
-                };
-
-            fNOP.prototype = this.prototype;
-            fBound.prototype = new fNOP();
-
-            return fBound;
-        };
-    }
 }(this));
 
 /**
@@ -222,13 +196,19 @@ var cMove = (function() {
         myCanvas.width = canvas.width;
         myCanvas.height = canvas.height;
         myCanvas.ctx = canvas.getContext('2d');
-        myCanvas.ratio = 1; // See MyCanvas.init() for details.
-        myCanvas.valid = false;
+        myCanvas.pixelRatio = 1; // See MyCanvas.init() for details.
+        myCanvas.ratio = myCanvas.width / myCanvas.height;
+        myCanvas.scale = myCanvas.width / 320;
 
         // Basic options
         myCanvas.shapes = []; // The collection of shapes to be drawn
         myCanvas.rectangles = []; // It is useful to have arrays of relative shapes. See MyCanvas.prototype.addShape() for details.
         myCanvas.pictures = [];
+
+
+        // Custom game properties (Balloon game)
+        myCanvas.nextAttack = 100;
+
 
         myCanvas.dragging = false; // Keep track of when we are dragging.
         myCanvas.selection = null; // The current selected object.
@@ -256,78 +236,97 @@ var cMove = (function() {
         myCanvas.styleBorderLeft  = parseInt(canvasStyles['borderLeftWidth'], 10)  || 0;
         myCanvas.styleBorderTop   = parseInt(canvasStyles['borderTopWidth'], 10)   || 0;
 
-        // Bind draw function (we do it for correct context in requestAnimationFrame function).
-        myCanvas.draw = draw.bind(myCanvas);
-
 
         // Fixes a problem where double clicking causes text to get selected on the canvas.
         canvas.addEventListener('selectstart', function(e) { e.preventDefault(); return false; }, false);
 
         function pointerStart(e) {
             var mouse = myCanvas.getPointer(e),
-                mx = mouse.x,
-                my = mouse.y,
+                mx = mouse.x / myCanvas.scale,
+                my = mouse.y / myCanvas.scale,
                 shapes = myCanvas.shapes,
                 l = shapes.length;
 
             for (var i = l-1; i >= 0; i--) {
-                if (myCanvas.shapes[i].contains(mx, my)) {
-                    var mySel = myCanvas.shapes[i];
-
-                    // Keep track of where in the object we clicked
-                    // so we can move it smoothly (see pointermove)
-                    myCanvas.dragoffx = mx - mySel.x;
-                    myCanvas.dragoffy = my - mySel.y;
-                    myCanvas.dragging = true;
-                    myCanvas.selection = mySel;
-
-                    myCanvas.valid = false;
-                    return;
+                var shape = myCanvas.shapes[i];
+                if (shape.contains(mx, my) && shape.type == 'attacker') {
+                    myCanvas.shapes.splice(i, 1);
                 }
-            }
-
-            // Haven't returned means we have failed to select anything.
-            // If there was an object selected, we deselect it.
-            if (myCanvas.selection) {
-                myCanvas.selection = null;
-                myCanvas.valid = false;
             }
         }
 
         function pointerMove(e) {
-            if (myCanvas.dragging && myCanvas.selection.draggable) {
-                // Prevent scrolling for mobile.
-                e.preventDefault();
-
-                var mouse = myCanvas.getPointer(e);
-                // We don't want to drag the object by its top-left corner, we want to drag it
-                // from where we clicked. Thats why we saved the offset and use it here
-                myCanvas.selection.x = mouse.x - myCanvas.dragoffx;
-                myCanvas.selection.y = mouse.y - myCanvas.dragoffy;
-
-                if (config.STRONG_BORDERS) {
-                    // Do not allow to move shape out of the canvas.
-                    if (myCanvas.selection.x < 0) { myCanvas.selection.x = 0; }
-                    if (myCanvas.selection.y < 0) { myCanvas.selection.y = 0; }
-                    if (myCanvas.selection.x + myCanvas.selection.w > myCanvas.width) { myCanvas.selection.x = myCanvas.width - myCanvas.selection.w; }
-                    if (myCanvas.selection.y + myCanvas.selection.h > myCanvas.height) { myCanvas.selection.y = myCanvas.height - myCanvas.selection.h; }
-                }
-
-                myCanvas.valid = false; // Something's dragging so we must redraw
-            }
+            e.preventDefault();
         }
 
-        function pointerEnd() {
-            myCanvas.dragging = false;
+        function pointerEnd(e) {
+            e.preventDefault();
         }
 
         // Set event listeners if needed
-        canvas.addEventListener('pointerdown', pointerStart, true);
-        canvas.addEventListener('pointermove', pointerMove, true);
-        canvas.addEventListener('pointerup', pointerEnd, true);
+        canvas.addEventListener('pointerdown', pointerStart, false);
+        canvas.addEventListener('pointermove', pointerMove, false);
+        canvas.addEventListener('pointerup', pointerEnd, false);
 
-        myCanvas.init(canvas);
-        myCanvas.draw();
+        myCanvas.update = function(time) {
+            myCanvas.nextAttack -= 1;
+
+            if (myCanvas.nextAttack < 0) {
+                var x = Math.random() * myCanvas.width;
+                var attackSpeed = (Math.random() * 3) + 1;
+                var attacker = new Rectangle(myCanvas, {x: x, y: -100, fill: 'red', type: 'attacker'});
+
+                attacker.update = function(time){
+                    attacker.x = 30 * Math.sin(time) + attacker.initX;
+                    attacker.y += attackSpeed;
+                };
+
+                myCanvas.addShape(attacker);
+
+                myCanvas.nextAttack = ( Math.random() * 100 ) + 100;
+            }
+
+            for (var i = 0; i < myCanvas.shapes.length; i++) {
+                var shape = myCanvas.shapes[i];
+                if (shape.y > myCanvas.height) {
+                    myCanvas.shapes.splice(i, 1);
+                }
+            }
+        };
+
+        myCanvas.render = function(time) {
+            var l = myCanvas.shapes.length;
+
+            myCanvas.clear();
+
+            // Draw all shapes.
+            for (var i = 0; i < l; i++) {
+                var shape = myCanvas.shapes[i];
+
+                if (shape.update) {
+                    shape.update(time);
+                }
+
+                shape.draw();
+            }
+
+            // Draw selected shape last to be on top of the others.
+            if (myCanvas.selection && config.SELECTION_ON_TOP) {
+                myCanvas.selection.draw();
+            }
+        };
+
+        myCanvas.start = function () {
+//            console.log(myCanvas.shapes)
+            var time = Date.now() * 0.002;
+
+            myCanvas.update(time);
+            myCanvas.render(time);
+
+            requestAnimationFrame(myCanvas.start, myCanvas.canvas);
+        };
+
+        myCanvas.init();
     }
 
     MyCanvas.prototype.addShape = function(shape) {
@@ -342,38 +341,6 @@ var cMove = (function() {
         }
         myCanvas.valid = false;
     };
-
-    function draw() {
-        var myCanvas = this;
-
-        //if (!myCanvas.valid) {
-            var ctx = myCanvas.ctx,
-                shapes = myCanvas.shapes,
-                l = shapes.length;
-
-            myCanvas.clear();
-
-            // Draw all shapes.
-            for (var i = 0; i < l; i++) {
-                var shape = shapes[i];
-
-                // We can skip drawing of the elements that have moved off the screen.
-                if (shape.x > myCanvas.width || shape.y > myCanvas.height ||
-                    shape.x + shape.w < 0 || shape.y + shape.h < 0) continue;
-                shapes[i].update();
-                shapes[i].draw();
-            }
-
-            // Draw selected shape last to be on top of the others.
-            if (myCanvas.selection && config.SELECTION_ON_TOP) {
-                myCanvas.selection.draw();
-            }
-
-            myCanvas.valid = true;
-        //}
-
-        requestAnimationFrame(myCanvas.draw, myCanvas.canvas);
-    }
 
     MyCanvas.prototype.clear = function() {
         var myCanvas = this;
@@ -404,7 +371,7 @@ var cMove = (function() {
         return {x: mx, y: my};
     };
 
-    MyCanvas.prototype.init = function(canvas) {
+    MyCanvas.prototype.init = function() {
         var myCanvas = this,
             ctx = myCanvas.ctx,
             devicePixelRatio = window.devicePixelRatio || 1,
@@ -414,28 +381,40 @@ var cMove = (function() {
                                 ctx.oBackingStorePixelRatio ||
                                 ctx.backingStorePixelRatio || 1,
 
-            ratio = devicePixelRatio / backingStoreRatio;
+            pixelRatio = devicePixelRatio / backingStoreRatio;
 
-        var container = canvas.parentNode,
-            w =  container.offsetWidth,
-            h = container.offsetHeight;
+        var w = 320,
+            h = 480;
 
-        canvas.width = w;
-        canvas.height = h;
-        canvas.style.width = w + 'px';
-        canvas.style.height = h + 'px';
+        myCanvas.ratio = w / h;
+        myCanvas.canvas.width = w;
+        myCanvas.canvas.height = h;
 
         myCanvas.width = w;
         myCanvas.height = h;
 
-        if (ratio !== 1) {
-            myCanvas.ratio = ratio;
-            w = w * ratio;
-            h = h * ratio;
-            canvas.width = w;
-            canvas.height = h;
-            myCanvas.ctx.scale(ratio,ratio);
-        }
+        myCanvas.resize();
+
+//        if (pixelRatio !== 1) {
+//            myCanvas.pixelRatio = pixelRatio;
+//            w = w * pixelRatio;
+//            h = h * pixelRatio;
+//            canvas.width = w;
+//            canvas.height = h;
+//            myCanvas.ctx.scale(pixelRatio,pixelRatio);
+//        }
+    };
+
+    MyCanvas.prototype.resize = function () {
+        var myCanvas = this;
+
+        myCanvas.height = myCanvas.canvas.parentNode.offsetHeight;
+        myCanvas.width = myCanvas.height * myCanvas.ratio;
+
+        myCanvas.canvas.style.width = myCanvas.width + 'px';
+        myCanvas.canvas.style.height = myCanvas.height + 'px';
+
+        myCanvas.scale = myCanvas.width / 320;
     };
 
     function getRetinaPath(src, retinaPath) {
