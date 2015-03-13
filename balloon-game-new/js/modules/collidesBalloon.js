@@ -1,20 +1,22 @@
-var draw = require('./draw');
+var Draw = require('./draw');
 
+// a - artifact
+// b - balloon
 module.exports = function(a, b, game) {
-    var dx = a.x + a.w / 2;
-    var dy = a.y + a.h / 2;
+    var centerArtifactX = a.x + a.w / 2;
+    var centerArtifactY = a.y + a.h / 2;
 
     // balloon center for circle
-    var bx = b.x + b.r;
-    var by = b.y + b.r;
+    var centerBalloonX = b.x + b.r;
+    var centerBalloonY = b.y + b.r;
 
-    var distance_squared = ( ((dx - bx) * (dx - bx)) +
-                            ((dy - by) * (dy - by)));
+    var distance_squared = ( ((centerArtifactX - centerBalloonX) * (centerArtifactX - centerBalloonX)) +
+                            ((centerArtifactY - centerBalloonY) * (centerArtifactY - centerBalloonY)));
 
     var radii_squared = (a.r + b.r) * (a.r + b.r);
 
-//    draw.circle(game, dx, dy, a.r, 'red');
-//    draw.circle(game, bx, by, b.r, 'blue');
+//    Draw.circle(game, centerArtifactX, centerArtifactY, a.r, 'red');
+//    Draw.circle(game, centerBalloonX, centerBalloonY, b.r, 'blue');
 
     return distance_squared - radii_squared < 10;
 };

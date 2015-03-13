@@ -6,12 +6,14 @@ var Particle = require('./particle');
 var Draw = require('./draw');
 var hitArtifact = require('./hitArtifact');
 var collidesBalloon = require('./collidesBalloon');
+var Pump = require('./pump');
 
 var game = {
 
     // set up some inital values
     WIDTH: 320,
     HEIGHT:  480,
+    bgColor: '#6ee5dd',
     scale:  1,
     // the position of the canvas
     // in relation to the screen
@@ -21,6 +23,7 @@ var game = {
     // the amount of game ticks until
     // we spawn a artifact
     nextArtifact: 100,
+    blowing: false,
     // for tracking player's progress
     score: {
         taps: 0,
@@ -78,29 +81,23 @@ var game = {
         game.wave.total = Math.ceil(game.WIDTH / game.wave.r) + 1;
 
         game.balloon = new Balloon(game);
+        game.pump = new Pump(game);
 
-        // listen for clicks
-        window.addEventListener('click', function(e) {
+        // listen for clicks, using hand.js polyfill
+        window.addEventListener('pointerdown', function(e) {
             e.preventDefault();
             Input.set(game, e);
         }, false);
 
-        // listen for touches
-        window.addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            // the event object has an array
-            // called touches, we just want
-            // the first touch
-            Input.set(game, e.touches[0]);
-        }, false);
-        window.addEventListener('touchmove', function(e) {
+        window.addEventListener('pointermove', function(e) {
             // we're not interested in this
             // but prevent default behaviour
             // so the screen doesn't scroll
             // or zoom
             e.preventDefault();
         }, false);
-        window.addEventListener('touchend', function(e) {
+
+        window.addEventListener('pointerup', function(e) {
             // as above
             e.preventDefault();
         }, false);
@@ -109,7 +106,6 @@ var game = {
         game.resize();
 
         game.loop();
-
     },
 
 
@@ -152,9 +148,12 @@ var game = {
     // this is where all entities will be moved
     // and checked for collisions etc
     update: function() {
-        var i,
-            checkCollision = false; // we only need to check for a collision
-                                // if the user tapped on this game tick
+        var i;
+        var checkCollision = false; // we only need to check for a collision if the user tapped on this game tick
+        var time = Date.now() * 0.002;
+
+        game.blowing = Math.sin(time * 0.5) > 0;
+        game.artifactCrashed = false;
 
         // decrease our nextBubble counter
         game.nextArtifact -= 1;
@@ -185,25 +184,24 @@ var game = {
         for (i = 0; i < game.entities.length; i += 1) {
             game.entities[i].update();
 
-            if (game.entities[i].type === 'artifact' && checkCollision) {
-                hit = hitArtifact(game.entities[i],
+            if (game.entities[i].type === 'artifact') {
+
+                if (checkCollision) {
+                    hit = hitArtifact(game.entities[i],
                                     {x: Input.x, y: Input.y, r: 7});
-                if (hit) {
-                    // spawn an exposion
-                    for (var n = 0; n < 5; n +=1 ) {
-                        game.entities.push(new Particle(
-                            game,
-                            game.entities[i].x, 
-                            game.entities[i].y, 
-                            2, 
-                            // random opacity to spice it up a bit
-                            'rgba(255,255,255,' + (Math.random() * 0.5 + 0.5) + ')'
-                        )); 
+                    if (hit) {
+                        // spawn an exposion
+                        game.addParticles(game.entities[i], 2, 7);
+
+                        game.score.hit += 1;
+                        game.entities[i].remove = true;
                     }
-                    game.score.hit += 1;
                 }
 
-                game.entities[i].remove = hit;
+                if (game.artifactCrashed) {
+                    game.addParticles(game.entities[i], 3, 10);
+                }
+
             }
 
             // delete from array if remove property
@@ -214,6 +212,7 @@ var game = {
         }
 
         game.balloon.update();
+        game.pump.update();
 
         // update wave offset
         // feel free to play with these values for
@@ -234,7 +233,9 @@ var game = {
     render: function() {
         var i;
 
-        Draw.rect(game, 0, 0, game.WIDTH, game.HEIGHT, '#6ee5dd');
+        Draw.rect(game, 0, 0, game.WIDTH, game.HEIGHT, game.bgColor);
+        game.pump.render();
+        game.balloon.render();
 
         // display snazzy wave effect
         for (i = 0; i < game.wave.total; i++) {
@@ -248,7 +249,7 @@ var game = {
 
         // cycle through all entities and render to canvas
         for (i = 0; i < game.entities.length; i += 1) {
-            var collides = collidesBalloon(game.entities[i], game.balloon, game);3
+            var collides = collidesBalloon(game.entities[i], game.balloon, game);
             if (collides) {
                 window.cancelAnimationFrame(game.animId);
             }
@@ -256,13 +257,9 @@ var game = {
             game.entities[i].render();
         }
 
-        game.balloon.render();
-
         // display scores
-        Draw.text(game, 'Hit: ' + game.score.hit, 20, 30, 14, '#fff');
-        Draw.text(game, 'Escaped: ' + game.score.escaped, 20, 50, 14, '#fff');
-        Draw.text(game, 'Accuracy: ' + game.score.accuracy + '%', 20, 70, 14, '#fff');
-
+        Draw.text(game, 'Cakes killed: ' + game.score.hit, 20, 30, 14, '#fff');
+        Draw.text(game, 'Accuracy: ' + game.score.accuracy + '%', 180, 30, 14, '#fff');
     },
 
 
@@ -276,6 +273,20 @@ var game = {
 
         game.update();
         game.render();
+    },
+
+    addParticles: function(artifact, radius, strength) {
+        for (var n = 0; n < 5; n +=1 ) {
+            game.entities.push(new Particle(
+                game,
+                artifact.x,
+                artifact.y,
+                radius,
+                // random opacity to spice it up a bit
+                'rgba(255,255,255,' + (Math.random() * 0.5 + 0.5) + ')',
+                strength
+            ));
+        }
     }
 };
 

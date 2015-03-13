@@ -80,19 +80,21 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	var Input = __webpack_require__(2);
-	var Artifact = __webpack_require__(10);
-	var Balloon = __webpack_require__(8);
-	var Touch = __webpack_require__(4);
-	var Particle = __webpack_require__(5);
-	var Draw = __webpack_require__(6);
-	var hitArtifact = __webpack_require__(13);
-	var collidesBalloon = __webpack_require__(14);
+	var Artifact = __webpack_require__(3);
+	var Balloon = __webpack_require__(4);
+	var Touch = __webpack_require__(5);
+	var Particle = __webpack_require__(6);
+	var Draw = __webpack_require__(7);
+	var hitArtifact = __webpack_require__(8);
+	var collidesBalloon = __webpack_require__(9);
+	var Pump = __webpack_require__(10);
 
 	var game = {
 
 	    // set up some inital values
 	    WIDTH: 320,
 	    HEIGHT:  480,
+	    bgColor: '#6ee5dd',
 	    scale:  1,
 	    // the position of the canvas
 	    // in relation to the screen
@@ -102,6 +104,7 @@
 	    // the amount of game ticks until
 	    // we spawn a artifact
 	    nextArtifact: 100,
+	    blowing: false,
 	    // for tracking player's progress
 	    score: {
 	        taps: 0,
@@ -159,29 +162,23 @@
 	        game.wave.total = Math.ceil(game.WIDTH / game.wave.r) + 1;
 
 	        game.balloon = new Balloon(game);
+	        game.pump = new Pump(game);
 
-	        // listen for clicks
-	        window.addEventListener('click', function(e) {
+	        // listen for clicks, using hand.js polyfill
+	        window.addEventListener('pointerdown', function(e) {
 	            e.preventDefault();
 	            Input.set(game, e);
 	        }, false);
 
-	        // listen for touches
-	        window.addEventListener('touchstart', function(e) {
-	            e.preventDefault();
-	            // the event object has an array
-	            // called touches, we just want
-	            // the first touch
-	            Input.set(game, e.touches[0]);
-	        }, false);
-	        window.addEventListener('touchmove', function(e) {
+	        window.addEventListener('pointermove', function(e) {
 	            // we're not interested in this
 	            // but prevent default behaviour
 	            // so the screen doesn't scroll
 	            // or zoom
 	            e.preventDefault();
 	        }, false);
-	        window.addEventListener('touchend', function(e) {
+
+	        window.addEventListener('pointerup', function(e) {
 	            // as above
 	            e.preventDefault();
 	        }, false);
@@ -190,7 +187,6 @@
 	        game.resize();
 
 	        game.loop();
-
 	    },
 
 
@@ -233,9 +229,12 @@
 	    // this is where all entities will be moved
 	    // and checked for collisions etc
 	    update: function() {
-	        var i,
-	            checkCollision = false; // we only need to check for a collision
-	                                // if the user tapped on this game tick
+	        var i;
+	        var checkCollision = false; // we only need to check for a collision if the user tapped on this game tick
+	        var time = Date.now() * 0.002;
+
+	        game.blowing = Math.sin(time * 0.5) > 0;
+	        game.artifactCrashed = false;
 
 	        // decrease our nextBubble counter
 	        game.nextArtifact -= 1;
@@ -266,25 +265,24 @@
 	        for (i = 0; i < game.entities.length; i += 1) {
 	            game.entities[i].update();
 
-	            if (game.entities[i].type === 'artifact' && checkCollision) {
-	                hit = hitArtifact(game.entities[i],
+	            if (game.entities[i].type === 'artifact') {
+
+	                if (checkCollision) {
+	                    hit = hitArtifact(game.entities[i],
 	                                    {x: Input.x, y: Input.y, r: 7});
-	                if (hit) {
-	                    // spawn an exposion
-	                    for (var n = 0; n < 5; n +=1 ) {
-	                        game.entities.push(new Particle(
-	                            game,
-	                            game.entities[i].x, 
-	                            game.entities[i].y, 
-	                            2, 
-	                            // random opacity to spice it up a bit
-	                            'rgba(255,255,255,' + (Math.random() * 0.5 + 0.5) + ')'
-	                        )); 
+	                    if (hit) {
+	                        // spawn an exposion
+	                        game.addParticles(game.entities[i], 2, 7);
+
+	                        game.score.hit += 1;
+	                        game.entities[i].remove = true;
 	                    }
-	                    game.score.hit += 1;
 	                }
 
-	                game.entities[i].remove = hit;
+	                if (game.artifactCrashed) {
+	                    game.addParticles(game.entities[i], 3, 10);
+	                }
+
 	            }
 
 	            // delete from array if remove property
@@ -295,6 +293,7 @@
 	        }
 
 	        game.balloon.update();
+	        game.pump.update();
 
 	        // update wave offset
 	        // feel free to play with these values for
@@ -315,7 +314,9 @@
 	    render: function() {
 	        var i;
 
-	        Draw.rect(game, 0, 0, game.WIDTH, game.HEIGHT, '#6ee5dd');
+	        Draw.rect(game, 0, 0, game.WIDTH, game.HEIGHT, game.bgColor);
+	        game.pump.render();
+	        game.balloon.render();
 
 	        // display snazzy wave effect
 	        for (i = 0; i < game.wave.total; i++) {
@@ -329,7 +330,7 @@
 
 	        // cycle through all entities and render to canvas
 	        for (i = 0; i < game.entities.length; i += 1) {
-	            var collides = collidesBalloon(game.entities[i], game.balloon, game);3
+	            var collides = collidesBalloon(game.entities[i], game.balloon, game);
 	            if (collides) {
 	                window.cancelAnimationFrame(game.animId);
 	            }
@@ -337,13 +338,9 @@
 	            game.entities[i].render();
 	        }
 
-	        game.balloon.render();
-
 	        // display scores
-	        Draw.text(game, 'Hit: ' + game.score.hit, 20, 30, 14, '#fff');
-	        Draw.text(game, 'Escaped: ' + game.score.escaped, 20, 50, 14, '#fff');
-	        Draw.text(game, 'Accuracy: ' + game.score.accuracy + '%', 20, 70, 14, '#fff');
-
+	        Draw.text(game, 'Cakes killed: ' + game.score.hit, 20, 30, 14, '#fff');
+	        Draw.text(game, 'Accuracy: ' + game.score.accuracy + '%', 180, 30, 14, '#fff');
 	    },
 
 
@@ -357,6 +354,20 @@
 
 	        game.update();
 	        game.render();
+	    },
+
+	    addParticles: function(artifact, radius, strength) {
+	        for (var n = 0; n < 5; n +=1 ) {
+	            game.entities.push(new Particle(
+	                game,
+	                artifact.x,
+	                artifact.y,
+	                radius,
+	                // random opacity to spice it up a bit
+	                'rgba(255,255,255,' + (Math.random() * 0.5 + 0.5) + ')',
+	                strength
+	            ));
+	        }
 	    }
 	};
 
@@ -372,99 +383,215 @@
 	    tapped :false,
 
 	    set: function(game, data) {
-	        this.x = (data.pageX - game.offset.left) / game.scale;
-	        this.y = (data.pageY - game.offset.top) / game.scale;
-	        this.tapped = true;
+	        var input = this;
+	        input.x = (data.pageX - game.offset.left) / game.scale;
+	        input.y = (data.pageY - game.offset.top) / game.scale;
+	        input.tapped = true;
 	    }
 	};
 
 /***/ },
-/* 3 */,
+/* 3 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var Draw = __webpack_require__(7);
+
+	module.exports = function(game) {
+	    var artifact = this;
+	    
+	    artifact.type = 'artifact';
+	    artifact.speed = (Math.random() * 3) + 1;
+	    artifact.remove = false;
+
+	    // we have four types of pictures, named from 1 to 4.
+	    var picNum = (Math.floor(Math.random() * 4) + 1);
+
+	    artifact.pic = new Image();
+	    artifact.pic.src = './i/item-' + picNum + '.png';
+
+	    artifact.pic.onload = function() {
+	        artifact.w = artifact.pic.naturalWidth / 1.5;
+	        artifact.h = artifact.pic.naturalHeight / 1.5;
+	        artifact.r = Math.min(artifact.w, artifact.h) / 2;
+
+	        artifact.x = (Math.random() * (game.WIDTH) - artifact.w / 2);
+	        artifact.y = -(Math.random() * 100) - 100;
+
+	        // the amount by which the bubble
+	        // will move from side to side
+	        artifact.waveSize = 5 + artifact.w / 2;
+	        // we need to remember the original
+	        // x position for our sine wave calculation
+	        artifact.initX = artifact.x;
+	    };
+
+	    artifact.update = function() {
+
+	        // a sine wave is commonly a function of time
+	        var time = Date.now() * 0.002;
+
+	        artifact.y += artifact.speed;
+	        // the x coord to follow a sine wave
+	        artifact.x = artifact.waveSize * Math.sin(time) + artifact.initX;
+
+	        // if offscreen flag for removal
+	        if (artifact.y > (game.HEIGHT - artifact.h + 10)) {
+	            game.artifactCrashed = true;
+	            game.score.escaped += 1; // update score
+	            artifact.remove = true;
+	        }
+
+	    };
+
+	    artifact.render = function() {
+	        Draw.pic(game, artifact.pic, artifact.x, artifact.y, artifact.w, artifact.h);
+	    };
+
+	};
+
+/***/ },
 /* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var Draw = __webpack_require__(6);
+	var Draw = __webpack_require__(7);
 
-	module.exports = function(game, x, y) {
-	    this.type = 'touch';    // we'll need this later
-	    this.x = x;             // the x coordinate
-	    this.y = y;             // the y coordinate
-	    this.r = 5;             // the radius
-	    this.opacity = 1;       // inital opacity. the dot will fade out
-	    this.fade = 0.05;       // amount by which to fade on each game tick
-	    // this.remove = false;    // flag for removing this entity. balloon.update
-	                            // will take care of this
+	module.exports = function (game) {
+	    var balloon = this;
 
-	    this.update = function() {
-	        // reduct the opacity accordingly
-	        this.opacity -= this.fade;
-	        // if opacity if 0 or less, flag for removal
-	        this.remove = (this.opacity < 0) ? true : false;
+	    balloon.type = 'balloon';
+
+	    // speed of blowing
+	    var delta = 0.2;
+	    var minIndex = 0.2;
+
+	    balloon.pic = new Image();
+	    balloon.pic.src = './i/shar-size-1.png';
+
+	    balloon.pic.onload = function () {
+	        balloon.w = balloon.pic.naturalWidth * minIndex;
+	        balloon.h = balloon.pic.naturalHeight * minIndex;
+
+	        // center the balloon
+	        balloon.x = game.WIDTH / 2 - balloon.w / 2;
+	        balloon.y = game.HEIGHT - balloon.h;
+
+	        balloon.ratio = balloon.h / balloon.w;
+	        balloon.r = balloon.w / 2; // we know that width < height
+	        balloon.initX = balloon.x;
 	    };
 
-	    this.render = function() {
-	        Draw.circle(game, this.x, this.y, this.r, 'rgba(255,0,0,'+this.opacity+')');
+	    balloon.update = function() {
+	        // a sine wave is commonly a function of time
+	        var time = Date.now() * 0.002;
+
+	        if (game.blowing) {
+	            balloon.w += delta;
+	            balloon.h += (balloon.ratio * delta);
+	            balloon.r = balloon.w / 2;
+	        } else {
+	            balloon.w -= delta / 3;
+	            balloon.h -= (balloon.ratio * delta / 3);
+	            balloon.r = balloon.w / 2;
+	        }
+
+	        balloon.x = 20 * Math.sin(time) + (game.WIDTH / 2 - balloon.w / 2);
+	        balloon.y = game.HEIGHT - balloon.h;
 	    };
 
+	    balloon.render = function() {
+	        Draw.pic(game, balloon.pic, balloon.x, balloon.y, balloon.w, balloon.h);
+	    };
 	};
 
 /***/ },
 /* 5 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var Draw = __webpack_require__(6);
+	var Draw = __webpack_require__(7);
 
-	module.exports = function(game, x, y, r, col) {
+	module.exports = function(game, x, y) {
+	    var touch = this;
 
-	    this.x = x;
-	    this.y = y;
-	    this.r = r;
-	    this.col = col;
+	    touch.type = 'touch';    // we'll need touch later
+	    touch.x = x;             // the x coordinate
+	    touch.y = y;             // the y coordinate
+	    touch.r = 5;             // the radius
+	    touch.opacity = 1;       // inital opacity. the dot will fade out
+	    touch.fade = 0.05;       // amount by which to fade on each game tick
+	    // touch.remove = false;    // flag for removing touch entity. balloon.update
+	                            // will take care of touch
 
-	    // determines whether particle will
-	    // travel to the right of left
-	    // 50% chance of either happening
-	    this.dir = (Math.random() * 2 > 1) ? 1 : -1;
-
-	    // random values so particles do no
-	    // travel at the same speeds
-	    this.vx = ~~(Math.random() * 4) * this.dir;
-	    this.vy = ~~(Math.random() * 7);
-
-	    this.remove = false;
-
-	    this.update = function() {
-
-	        // update coordinates
-	        this.x += this.vx;
-	        this.y -= this.vy;
-
-	        // increase velocity so particle
-	        // accelerates off screen
-	        this.vx *= 0.99;
-	        this.vy *= 0.99;
-
-	        // adding this negative amount to the
-	        // y velocity exerts an upward pull on
-	        // the particle, as if drawn to the
-	        // surface
-	        this.vy -= 0.25;
-
-	        // offscreen
-	        if (this.y > game.HEIGHT) {
-	            this.remove = true;
-	        }
-
+	    touch.update = function() {
+	        // reduct the opacity accordingly
+	        touch.opacity -= touch.fade;
+	        // if opacity if 0 or less, flag for removal
+	        touch.remove = (touch.opacity < 0) ? true : false;
 	    };
 
-	    this.render = function() {
-	        Draw.circle(game, this.x, this.y, this.r, this.col);
+	    touch.render = function() {
+	        Draw.circle(game, touch.x, touch.y, touch.r, 'rgba(255,0,0,'+touch.opacity+')');
 	    };
 
 	};
 
 /***/ },
 /* 6 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var Draw = __webpack_require__(7);
+
+	module.exports = function(game, x, y, r, col, strength) {
+	    var particle = this;
+	    
+	    particle.x = x;
+	    particle.y = y;
+	    particle.r = r;
+	    particle.col = col;
+
+	    // determines whether particle will
+	    // travel to the right of left
+	    // 50% chance of either happening
+	    particle.dir = (Math.random() * 2 > 1) ? 1 : -1;
+
+	    // random values so particles do no
+	    // travel at the same speeds
+	    particle.vx = ~~(Math.random() * 4) * particle.dir;
+	    particle.vy = ~~(Math.random() * strength);
+
+	    particle.remove = false;
+
+	    particle.update = function() {
+
+	        // update coordinates
+	        particle.x += particle.vx;
+	        particle.y -= particle.vy;
+
+	        // increase velocity so particle
+	        // accelerates off screen
+	        particle.vx *= 0.99;
+	        particle.vy *= 0.99;
+
+	        // adding particle negative amount to the
+	        // y velocity exerts an upward pull on
+	        // the particle, as if drawn to the
+	        // surface
+	        particle.vy -= 0.25;
+
+	        // offscreen
+	        if (particle.y > game.HEIGHT) {
+	            particle.remove = true;
+	        }
+
+	    };
+
+	    particle.render = function() {
+	        Draw.circle(game, particle.x, particle.y, particle.r, particle.col);
+	    };
+
+	};
+
+/***/ },
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = {
@@ -498,134 +625,15 @@
 	};
 
 /***/ },
-/* 7 */,
 /* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var Draw = __webpack_require__(6);
-
-	module.exports = function (game) {
-	    this.type = 'balloon';
-
-	    var d = 0.05;
-	    var w = 212;
-	    var h = 335;
-	    var ratio = h / w;
-
-	    this.w = w / 5;
-	    this.h = h / 5;
-
-	    this.r = this.w / 2;
-
-	    this.x = game.WIDTH / 2 - this.w / 2;
-	    this.y = game.HEIGHT - this.h;
-
-	    this.initX = this.x;
-
-	    this.remove = false;
-
-	    this.pic = new Image();
-	    this.pic.src = './i/shar-size-1.png';
-
-	    this.update = function() {
-	        // a sine wave is commonly a function of time
-	        var time = Date.now() * 0.002;
-	        this.x = 30 * Math.sin(time) + (game.WIDTH / 2 - this.w / 2);
-	        this.w += d;
-	        this.h += (ratio * d);
-	        this.y = game.HEIGHT - this.h;
-	        this.r = this.w / 2;
-	    };
-
-	    this.render = function() {
-	        Draw.pic(game, this.pic, this.x, this.y, this.w, this.h);
-	    };
-	};
-
-/***/ },
-/* 9 */,
-/* 10 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var Draw = __webpack_require__(6);
-
-	module.exports = function(game) {
-	    var artifact = this;
-	    
-	    artifact.type = 'artifact';
-	    artifact.speed = (Math.random() * 3) + 1;
-
-	    artifact.w = 100;
-	    artifact.h = 100;
-	    artifact.r = artifact.w / 2;
-
-	    artifact.x = (Math.random() * (game.WIDTH) - artifact.w / 2);
-	    artifact.y = -(Math.random() * 100) - 100;
-
-	    // the amount by which the bubble
-	    // will move from side to side
-	    artifact.waveSize = 5 + artifact.w / 2;
-	    // we need to remember the original
-	    // x position for our sine wave calculation
-	    artifact.initX = artifact.x;
-
-	    artifact.remove = false;
-
-	    artifact.pic = new Image();
-	    // we have for types of pictures, named from 1 to 4.
-	    artifact.pic.src = './i/item-' + (Math.floor(Math.random() * 4) + 1) + '.png';
-
-	    artifact.pic.onload = function() {
-	        artifact.w = artifact.pic.naturalWidth / 1.5;
-	        artifact.h = artifact.pic.naturalHeight / 1.5;
-	        artifact.r = Math.min(artifact.w, artifact.h) / 2;
-	    };
-
-	    artifact.update = function() {
-
-	        // a sine wave is commonly a function of time
-	        var time = new Date().getTime() * 0.002;
-
-	        artifact.y += artifact.speed;
-	        // the x coord to follow a sine wave
-	        artifact.x = artifact.waveSize * Math.sin(time) + artifact.initX;
-
-	        // if offscreen flag for removal
-	        if (artifact.y > game.HEIGHT + 10) {
-	            game.score.escaped += 1; // update score
-	            artifact.remove = true;
-	        }
-
-	    };
-
-	    artifact.render = function() {
-	        Draw.pic(game, artifact.pic, artifact.x, artifact.y, artifact.w, artifact.h);
-	    };
-
-	};
-
-/***/ },
-/* 11 */,
-/* 12 */,
-/* 13 */
-/***/ function(module, exports, __webpack_require__) {
-
 	module.exports = function(a, b) {
-	//    var x = {
-	//        min: a.x,
-	//        max: a.x + a.w
-	//    };
-	//
-	//    var y = {
-	//        min: a.y,
-	//        max: a.y + a.h
-	//    };
+	    var centerArtifactX = a.x + a.w / 2;
+	    var centerArtifactY = a.y + a.h / 2;
 
-	    var dx = a.x + a.w / 2;
-	    var dy = a.y + a.h / 2;
-
-	    var distance_squared = ( ((dx - b.x) * (dx - b.x)) +
-	                            ((dy - b.y) * (dy - b.y)));
+	    var distance_squared = ( ((centerArtifactX - b.x) * (centerArtifactX - b.x)) +
+	                            ((centerArtifactY - b.y) * (centerArtifactY - b.y)));
 
 	    var radii_squared = (a.r + b.r) * (a.r + b.r);
 
@@ -633,28 +641,81 @@
 	};
 
 /***/ },
-/* 14 */
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var draw = __webpack_require__(6);
+	var Draw = __webpack_require__(7);
 
+	// a - artifact
+	// b - balloon
 	module.exports = function(a, b, game) {
-	    var dx = a.x + a.w / 2;
-	    var dy = a.y + a.h / 2;
+	    var centerArtifactX = a.x + a.w / 2;
+	    var centerArtifactY = a.y + a.h / 2;
 
 	    // balloon center for circle
-	    var bx = b.x + b.r;
-	    var by = b.y + b.r;
+	    var centerBalloonX = b.x + b.r;
+	    var centerBalloonY = b.y + b.r;
 
-	    var distance_squared = ( ((dx - bx) * (dx - bx)) +
-	                            ((dy - by) * (dy - by)));
+	    var distance_squared = ( ((centerArtifactX - centerBalloonX) * (centerArtifactX - centerBalloonX)) +
+	                            ((centerArtifactY - centerBalloonY) * (centerArtifactY - centerBalloonY)));
 
 	    var radii_squared = (a.r + b.r) * (a.r + b.r);
 
-	//    draw.circle(game, dx, dy, a.r, 'red');
-	//    draw.circle(game, bx, by, b.r, 'blue');
+	//    Draw.circle(game, centerArtifactX, centerArtifactY, a.r, 'red');
+	//    Draw.circle(game, centerBalloonX, centerBalloonY, b.r, 'blue');
 
 	    return distance_squared - radii_squared < 10;
+	};
+
+/***/ },
+/* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var Draw = __webpack_require__(7);
+
+	module.exports = function (game) {
+	    var pump = this;
+
+	    var minIndex = 0.5;
+	    pump.type = 'pump';
+
+	    pump.pump1 = new Image();
+	    pump.pump1.src = './i/pump1.png';
+
+	    pump.pump2 = new Image();
+	    pump.pump2.src = './i/pump2.png';
+
+	    pump.pump1.onload = function () {
+	        pump.pump1.w = pump.pump1.naturalWidth * minIndex;
+	        pump.pump1.h = pump.pump1.naturalHeight * minIndex;
+
+	        // use 'dx' instead of 'x' because pump.pump1 is picture object
+	        // and already has property 'x'
+	        pump.pump1.dx = game.WIDTH / 5 - pump.pump1.w / 2;
+	        pump.pump1.dy = game.HEIGHT - pump.pump1.h;
+	    };
+
+	    pump.pump2.onload = function () {
+	        pump.pump2.w = pump.pump2.naturalWidth * minIndex;
+	        pump.pump2.h = pump.pump2.naturalHeight * minIndex;
+
+	        pump.pump2.dx = game.WIDTH / 5 - pump.pump2.w / 2;
+	        pump.pump2.dy = game.HEIGHT - pump.pump2.h;
+	    };
+
+	    pump.update = function() {
+	        // a sine wave is commonly a function of time
+	        var time = Date.now() * 0.002;
+
+	        if (game.blowing) {
+	            pump.pump1.dy = 30 * Math.sin(time * 5) + game.HEIGHT - pump.pump1.h - 10;
+	        }
+	    };
+
+	    pump.render = function() {
+	        Draw.pic(game, pump.pump1, pump.pump1.dx, pump.pump1.dy, pump.pump1.w, pump.pump1.h);
+	        Draw.pic(game, pump.pump2, pump.pump2.dx, pump.pump2.dy, pump.pump2.w, pump.pump2.h);
+	    };
 	};
 
 /***/ }

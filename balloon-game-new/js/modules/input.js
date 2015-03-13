@@ -4,8 +4,9 @@ module.exports = {
     tapped :false,
 
     set: function(game, data) {
-        this.x = (data.pageX - game.offset.left) / game.scale;
-        this.y = (data.pageY - game.offset.top) / game.scale;
-        this.tapped = true;
+        var input = this;
+        input.x = (data.pageX - game.offset.left) / game.scale;
+        input.y = (data.pageY - game.offset.top) / game.scale;
+        input.tapped = true;
     }
 };

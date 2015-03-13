@@ -1,39 +1,49 @@
 var Draw = require('./draw');
 
 module.exports = function (game) {
-    this.type = 'balloon';
+    var balloon = this;
 
-    var d = 0.05;
-    var w = 212;
-    var h = 335;
-    var ratio = h / w;
+    balloon.type = 'balloon';
 
-    this.w = w / 5;
-    this.h = h / 5;
+    // speed of blowing
+    var delta = 0.2;
+    var minIndex = 0.2;
 
-    this.r = this.w / 2;
+    balloon.pic = new Image();
+    balloon.pic.src = './i/shar-size-1.png';
 
-    this.x = game.WIDTH / 2 - this.w / 2;
-    this.y = game.HEIGHT - this.h;
+    balloon.pic.onload = function () {
+        balloon.w = balloon.pic.naturalWidth * minIndex;
+        balloon.h = balloon.pic.naturalHeight * minIndex;
 
-    this.initX = this.x;
+        // center the balloon
+        balloon.x = game.WIDTH / 2 - balloon.w / 2;
+        balloon.y = game.HEIGHT - balloon.h;
 
-    this.remove = false;
-
-    this.pic = new Image();
-    this.pic.src = './i/shar-size-1.png';
-
-    this.update = function() {
-        // a sine wave is commonly a function of time
-        var time = Date.now() * 0.002;
-        this.x = 30 * Math.sin(time) + (game.WIDTH / 2 - this.w / 2);
-        this.w += d;
-        this.h += (ratio * d);
-        this.y = game.HEIGHT - this.h;
-        this.r = this.w / 2;
+        balloon.ratio = balloon.h / balloon.w;
+        balloon.r = balloon.w / 2; // we know that width < height
+        balloon.initX = balloon.x;
     };
 
-    this.render = function() {
-        Draw.pic(game, this.pic, this.x, this.y, this.w, this.h);
+    balloon.update = function() {
+        // a sine wave is commonly a function of time
+        var time = Date.now() * 0.002;
+
+        if (game.blowing) {
+            balloon.w += delta;
+            balloon.h += (balloon.ratio * delta);
+            balloon.r = balloon.w / 2;
+        } else {
+            balloon.w -= delta / 3;
+            balloon.h -= (balloon.ratio * delta / 3);
+            balloon.r = balloon.w / 2;
+        }
+
+        balloon.x = 20 * Math.sin(time) + (game.WIDTH / 2 - balloon.w / 2);
+        balloon.y = game.HEIGHT - balloon.h;
+    };
+
+    balloon.render = function() {
+        Draw.pic(game, balloon.pic, balloon.x, balloon.y, balloon.w, balloon.h);
     };
 };
