@@ -11,7 +11,7 @@ module.exports = {
     circle: function(game, x, y, r, col) {
         game.ctx.fillStyle = col;
         game.ctx.beginPath();
-        game.ctx.arc(x + 5, y + 5, r, 0,  Math.PI * 2, true);
+        game.ctx.arc(x, y, r, 0,  Math.PI * 2, true);
         game.ctx.closePath();
         game.ctx.fill();
     },

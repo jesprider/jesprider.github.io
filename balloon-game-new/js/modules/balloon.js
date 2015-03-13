@@ -3,7 +3,7 @@ var Draw = require('./draw');
 module.exports = function (game) {
     this.type = 'balloon';
 
-    var d = 0.02;
+    var d = 0.05;
     var w = 212;
     var h = 335;
     var ratio = h / w;

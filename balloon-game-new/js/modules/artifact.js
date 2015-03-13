@@ -8,8 +8,7 @@ module.exports = function(game) {
 
     artifact.w = 100;
     artifact.h = 100;
-
-    artifact.r = Math.min(artifact.w, artifact.h) / 2;
+    artifact.r = artifact.w / 2;
 
     artifact.x = (Math.random() * (game.WIDTH) - artifact.w / 2);
     artifact.y = -(Math.random() * 100) - 100;
@@ -28,8 +27,9 @@ module.exports = function(game) {
     artifact.pic.src = './i/item-' + (Math.floor(Math.random() * 4) + 1) + '.png';
 
     artifact.pic.onload = function() {
-        artifact.w = artifact.pic.naturalWidth;
-        artifact.h = artifact.pic.naturalHeight;
+        artifact.w = artifact.pic.naturalWidth / 1.5;
+        artifact.h = artifact.pic.naturalHeight / 1.5;
+        artifact.r = Math.min(artifact.w, artifact.h) / 2;
     };
 
     artifact.update = function() {

@@ -44,16 +44,31 @@
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	window.requestAnimFrame = (function(){
-	  return  window.requestAnimationFrame       || 
-	          window.webkitRequestAnimationFrame || 
-	          window.mozRequestAnimationFrame    || 
-	          window.oRequestAnimationFrame      || 
-	          window.msRequestAnimationFrame     || 
-	          function( callback ){
-	            window.setTimeout(callback, 1000 / 60);
-	          };
-	})();
+	/**
+	 * RequestAnimationFrame polyfill
+	 */
+	var lastTime = 0;
+	var vendors = ['ms', 'moz', 'webkit', 'o'];
+	for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+	    window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
+	    window.cancelAnimationFrame = window[vendors[x]+'CancelAnimationFrame']
+	                               || window[vendors[x]+'CancelRequestAnimationFrame'];
+	}
+
+	if (!window.requestAnimationFrame)
+	    window.requestAnimationFrame = function(callback, element) {
+	        var currTime = Date.now();
+	        var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+	        var id = window.setTimeout(function() { callback(currTime + timeToCall); },
+	          timeToCall);
+	        lastTime = currTime + timeToCall;
+	        return id;
+	    };
+
+	if (!window.cancelAnimationFrame)
+	    window.cancelAnimationFrame = function(id) {
+	        clearTimeout(id);
+	    };
 
 	var game = __webpack_require__(1);
 
@@ -65,13 +80,11 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	var Input = __webpack_require__(2);
-	var Bubble = __webpack_require__(3);
 	var Artifact = __webpack_require__(10);
 	var Balloon = __webpack_require__(8);
 	var Touch = __webpack_require__(4);
 	var Particle = __webpack_require__(5);
 	var Draw = __webpack_require__(6);
-	var hitBubble = __webpack_require__(12);
 	var hitArtifact = __webpack_require__(13);
 	var collidesBalloon = __webpack_require__(14);
 
@@ -84,11 +97,11 @@
 	    // the position of the canvas
 	    // in relation to the screen
 	    offset: {top: 0, left: 0},
-	    // store all bubble, touches, particles etc
+	    // store all artifacts, touches, particles etc
 	    entities: [],
 	    // the amount of game ticks until
-	    // we spawn a bubble
-	    nextBubble: 100,
+	    // we spawn a artifact
+	    nextArtifact: 100,
 	    // for tracking player's progress
 	    score: {
 	        taps: 0,
@@ -225,13 +238,13 @@
 	                                // if the user tapped on this game tick
 
 	        // decrease our nextBubble counter
-	        game.nextBubble -= 1;
+	        game.nextArtifact -= 1;
 	        // if the counter is less than zero
-	        if (game.nextBubble < 0) {
+	        if (game.nextArtifact < 0) {
 	            // put a new instance of bubble into our entities array
 	            game.entities.push(new Artifact(game));
 	            // reset the counter with a random value
-	            game.nextBubble = ( Math.random() * 100 ) + 100;
+	            game.nextArtifact = ( Math.random() * 100 ) + 100;
 	        }
 
 	        // spawn a new instance of Touch
@@ -265,7 +278,7 @@
 	                            game.entities[i].y, 
 	                            2, 
 	                            // random opacity to spice it up a bit
-	                            'rgba(255,255,255,'+Math.random()*1+')'
+	                            'rgba(255,255,255,' + (Math.random() * 0.5 + 0.5) + ')'
 	                        )); 
 	                    }
 	                    game.score.hit += 1;
@@ -286,7 +299,7 @@
 	        // update wave offset
 	        // feel free to play with these values for
 	        // either slower or faster waves
-	        game.wave.time = new Date().getTime() * 0.002;
+	        game.wave.time = Date.now() * 0.002;
 	        game.wave.offset = Math.sin(game.wave.time * 0.8) * 5;
 
 	        // calculate accuracy
@@ -302,7 +315,7 @@
 	    render: function() {
 	        var i;
 
-	        Draw.rect(game, 0, 0, game.WIDTH, game.HEIGHT, '#9ed8d4');
+	        Draw.rect(game, 0, 0, game.WIDTH, game.HEIGHT, '#6ee5dd');
 
 	        // display snazzy wave effect
 	        for (i = 0; i < game.wave.total; i++) {
@@ -316,9 +329,9 @@
 
 	        // cycle through all entities and render to canvas
 	        for (i = 0; i < game.entities.length; i += 1) {
-	            var collides = collidesBalloon(game.entities[i], game.balloon);
+	            var collides = collidesBalloon(game.entities[i], game.balloon, game);3
 	            if (collides) {
-	                window.cancelAnimationFrame(game.requestId);
+	                window.cancelAnimationFrame(game.animId);
 	            }
 
 	            game.entities[i].render();
@@ -340,7 +353,7 @@
 	    // and render
 	    loop: function() {
 
-	        game.requestId = requestAnimFrame( game.loop );
+	        game.animId = requestAnimationFrame( game.loop );
 
 	        game.update();
 	        game.render();
@@ -366,53 +379,7 @@
 	};
 
 /***/ },
-/* 3 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var Draw = __webpack_require__(6);
-
-	module.exports = function(game) {
-	    this.type = 'bubble';
-	    this.r = (Math.random() * 20) + 10;
-	    this.speed = (Math.random() * 3) + 1;
-
-	    this.x = (Math.random() * (game.WIDTH) - this.r);
-	    this.y = -(Math.random() * 100) - 100;
-
-	    // the amount by which the bubble
-	    // will move from side to side
-	    this.waveSize = 5 + this.r;
-	    // we need to remember the original
-	    // x position for our sine wave calculation
-	    this.xConstant = this.x;
-
-	    this.remove = false;
-
-
-	    this.update = function() {
-
-	        // a sine wave is commonly a function of time
-	        var time = new Date().getTime() * 0.002;
-
-	        this.y += this.speed;
-	        // the x coord to follow a sine wave
-	        this.x = this.waveSize * Math.sin(time) + this.xConstant;
-
-	        // if offscreen flag for removal
-	        if (this.y > game.HEIGHT + 10) {
-	            game.score.escaped += 1; // update score
-	            this.remove = true;
-	        }
-
-	    };
-
-	    this.render = function() {
-	        Draw.circle(game, this.x, this.y, this.r, 'rgba(255,255,255,1)');
-	    };
-
-	};
-
-/***/ },
+/* 3 */,
 /* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -513,7 +480,7 @@
 	    circle: function(game, x, y, r, col) {
 	        game.ctx.fillStyle = col;
 	        game.ctx.beginPath();
-	        game.ctx.arc(x + 5, y + 5, r, 0,  Math.PI * 2, true);
+	        game.ctx.arc(x, y, r, 0,  Math.PI * 2, true);
 	        game.ctx.closePath();
 	        game.ctx.fill();
 	    },
@@ -540,7 +507,7 @@
 	module.exports = function (game) {
 	    this.type = 'balloon';
 
-	    var d = 0.02;
+	    var d = 0.05;
 	    var w = 212;
 	    var h = 335;
 	    var ratio = h / w;
@@ -590,8 +557,7 @@
 
 	    artifact.w = 100;
 	    artifact.h = 100;
-
-	    artifact.r = Math.min(artifact.w, artifact.h) / 2;
+	    artifact.r = artifact.w / 2;
 
 	    artifact.x = (Math.random() * (game.WIDTH) - artifact.w / 2);
 	    artifact.y = -(Math.random() * 100) - 100;
@@ -610,8 +576,9 @@
 	    artifact.pic.src = './i/item-' + (Math.floor(Math.random() * 4) + 1) + '.png';
 
 	    artifact.pic.onload = function() {
-	        artifact.w = artifact.pic.naturalWidth;
-	        artifact.h = artifact.pic.naturalHeight;
+	        artifact.w = artifact.pic.naturalWidth / 1.5;
+	        artifact.h = artifact.pic.naturalHeight / 1.5;
+	        artifact.r = Math.min(artifact.w, artifact.h) / 2;
 	    };
 
 	    artifact.update = function() {
@@ -639,19 +606,7 @@
 
 /***/ },
 /* 11 */,
-/* 12 */
-/***/ function(module, exports, __webpack_require__) {
-
-	module.exports = function(a, b) {
-	    var distance_squared = ( ((a.x - b.x) * (a.x - b.x)) +
-	                            ((a.y - b.y) * (a.y - b.y)));
-
-	    var radii_squared = (a.r + b.r) * (a.r + b.r);
-
-	    return distance_squared < radii_squared;
-	};
-
-/***/ },
+/* 12 */,
 /* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -681,20 +636,25 @@
 /* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
-	module.exports = function(a, b) {
+	var draw = __webpack_require__(6);
+
+	module.exports = function(a, b, game) {
 	    var dx = a.x + a.w / 2;
 	    var dy = a.y + a.h / 2;
 
 	    // balloon center for circle
-	    var bx = b.x + b.w / 2;
+	    var bx = b.x + b.r;
 	    var by = b.y + b.r;
 
-	    var distance_squared = ( ((dx - b.x) * (dx - b.x)) +
-	                            ((dy - b.y) * (dy - b.y)));
+	    var distance_squared = ( ((dx - bx) * (dx - bx)) +
+	                            ((dy - by) * (dy - by)));
 
 	    var radii_squared = (a.r + b.r) * (a.r + b.r);
 
-	    return distance_squared < radii_squared;
+	//    draw.circle(game, dx, dy, a.r, 'red');
+	//    draw.circle(game, bx, by, b.r, 'blue');
+
+	    return distance_squared - radii_squared < 10;
 	};
 
 /***/ }

@@ -1,11 +1,9 @@
 var Input = require('./input');
-var Bubble = require('./bubble');
 var Artifact = require('./artifact');
 var Balloon = require('./balloon');
 var Touch = require('./touch');
 var Particle = require('./particle');
 var Draw = require('./draw');
-var hitBubble = require('./hitBubble');
 var hitArtifact = require('./hitArtifact');
 var collidesBalloon = require('./collidesBalloon');
 
@@ -18,11 +16,11 @@ var game = {
     // the position of the canvas
     // in relation to the screen
     offset: {top: 0, left: 0},
-    // store all bubble, touches, particles etc
+    // store all artifacts, touches, particles etc
     entities: [],
     // the amount of game ticks until
-    // we spawn a bubble
-    nextBubble: 100,
+    // we spawn a artifact
+    nextArtifact: 100,
     // for tracking player's progress
     score: {
         taps: 0,
@@ -159,13 +157,13 @@ var game = {
                                 // if the user tapped on this game tick
 
         // decrease our nextBubble counter
-        game.nextBubble -= 1;
+        game.nextArtifact -= 1;
         // if the counter is less than zero
-        if (game.nextBubble < 0) {
+        if (game.nextArtifact < 0) {
             // put a new instance of bubble into our entities array
             game.entities.push(new Artifact(game));
             // reset the counter with a random value
-            game.nextBubble = ( Math.random() * 100 ) + 100;
+            game.nextArtifact = ( Math.random() * 100 ) + 100;
         }
 
         // spawn a new instance of Touch
@@ -199,7 +197,7 @@ var game = {
                             game.entities[i].y, 
                             2, 
                             // random opacity to spice it up a bit
-                            'rgba(255,255,255,'+Math.random()*1+')'
+                            'rgba(255,255,255,' + (Math.random() * 0.5 + 0.5) + ')'
                         )); 
                     }
                     game.score.hit += 1;
@@ -220,7 +218,7 @@ var game = {
         // update wave offset
         // feel free to play with these values for
         // either slower or faster waves
-        game.wave.time = new Date().getTime() * 0.002;
+        game.wave.time = Date.now() * 0.002;
         game.wave.offset = Math.sin(game.wave.time * 0.8) * 5;
 
         // calculate accuracy
@@ -236,7 +234,7 @@ var game = {
     render: function() {
         var i;
 
-        Draw.rect(game, 0, 0, game.WIDTH, game.HEIGHT, '#9ed8d4');
+        Draw.rect(game, 0, 0, game.WIDTH, game.HEIGHT, '#6ee5dd');
 
         // display snazzy wave effect
         for (i = 0; i < game.wave.total; i++) {
@@ -250,9 +248,9 @@ var game = {
 
         // cycle through all entities and render to canvas
         for (i = 0; i < game.entities.length; i += 1) {
-            var collides = collidesBalloon(game.entities[i], game.balloon);
+            var collides = collidesBalloon(game.entities[i], game.balloon, game);3
             if (collides) {
-                window.cancelAnimationFrame(game.requestId);
+                window.cancelAnimationFrame(game.animId);
             }
 
             game.entities[i].render();
@@ -274,7 +272,7 @@ var game = {
     // and render
     loop: function() {
 
-        game.requestId = requestAnimFrame( game.loop );
+        game.animId = requestAnimationFrame( game.loop );
 
         game.update();
         game.render();
