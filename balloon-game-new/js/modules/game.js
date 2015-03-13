@@ -11,8 +11,8 @@ var Pump = require('./pump');
 var game = {
 
     // set up some inital values
-    WIDTH: 320,
-    HEIGHT:  480,
+    WIDTH: 640,
+    HEIGHT:  1136,
     bgColor: '#6ee5dd',
     scale:  1,
     // the position of the canvas
