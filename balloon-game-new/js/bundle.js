@@ -79,22 +79,21 @@
 /* 1 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var Input = __webpack_require__(2);
-	var Artifact = __webpack_require__(3);
-	var Balloon = __webpack_require__(4);
-	var Touch = __webpack_require__(5);
-	var Particle = __webpack_require__(6);
-	var Draw = __webpack_require__(7);
-	var hitArtifact = __webpack_require__(8);
-	var collidesBalloon = __webpack_require__(9);
-	var Pump = __webpack_require__(10);
+	var config = __webpack_require__(2);
+	var Input = __webpack_require__(3);
+	var Artifact = __webpack_require__(4);
+	var Balloon = __webpack_require__(5);
+	var Touch = __webpack_require__(6);
+	var Particle = __webpack_require__(7);
+	var Draw = __webpack_require__(8);
+	var hitArtifact = __webpack_require__(9);
+	var collidesBalloon = __webpack_require__(10);
+	var Pump = __webpack_require__(11);
 
 	var game = {
-
-	    // set up some inital values
-	    WIDTH: 640,
-	    HEIGHT:  1136,
-	    bgColor: '#6ee5dd',
+	//    // set up some inital values
+	//    WIDTH: config.width,
+	//    HEIGHT:  config.height,
 	    scale:  1,
 	    // the position of the canvas
 	    // in relation to the screen
@@ -103,7 +102,7 @@
 	    entities: [],
 	    // the amount of game ticks until
 	    // we spawn a artifact
-	    nextArtifact: 100,
+	    nextArtifact: config.firstArtifact,
 	    blowing: false,
 	    // for tracking player's progress
 	    score: {
@@ -124,12 +123,24 @@
 	    ios:  null,
 
 	    init: function() {
+	        var wh = window.innerHeight;
+	        var ww = window.innerWidth;
+
+	        if (wh/ww < 1 || ww > 767) {
+	            game.WIDTH = config.width;
+	            game.HEIGHT = config.height;
+	        } else {
+	            game.WIDTH = ww * 2;
+	            game.HEIGHT = wh * 2;
+	        }
 
 	        // the proportion of width to height
 	        game.RATIO = game.WIDTH / game.HEIGHT;
+
 	        // these will change when the screen is resize
 	        game.currentWidth = game.WIDTH;
 	        game.currentHeight = game.HEIGHT;
+
 	        // this is our canvas element
 	        game.canvas = document.getElementsByTagName('canvas')[0];
 	        // it's important to set this
@@ -137,30 +148,20 @@
 	        // default to 320x200
 	        game.canvas.width = game.WIDTH;
 	        game.canvas.height = game.HEIGHT;
+
 	        // the canvas context allows us to
 	        // interact with the canvas api
 	        game.ctx = game.canvas.getContext('2d');
-	        // we need to sniff out android & ios
-	        // so we can hide the address bar in
-	        // our resize function
-	        game.ua = navigator.userAgent.toLowerCase();
-	        game.android = game.ua.indexOf('android') > -1 ? true : false;
-	        game.ios = ( game.ua.indexOf('iphone') > -1 || game.ua.indexOf('ipad') > -1  ) ? true : false;
 
 	        // set up our wave effect
 	        // basically, a series of overlapping circles
 	        // across the top of screen
-	        game.wave = {
-	            x: -25, // x coord of first circle
-	            y: -40, // y coord of first circle
-	            r: 50, // circle radius
-	            time: 0, // we'll use this in calculating the sine wave
-	            offset: 0 // this will be the sine wave offset
-	        };
+	        game.wave = config.wave;
 	        // calculate how many circles we need to
 	        // cover the screen width
 	        game.wave.total = Math.ceil(game.WIDTH / game.wave.r) + 1;
 
+	        // Шарик и насос
 	        game.balloon = new Balloon(game);
 	        game.pump = new Pump(game);
 
@@ -185,24 +186,20 @@
 
 	        // we're ready to resize
 	        game.resize();
-
 	        game.loop();
 	    },
 
 
 	    resize: function() {
+	        if (game.currentWidth > window.innerWidth) {
+	            game.currentWidth = window.innerWidth;
+	            game.currentHeight = game.currentWidth / game.RATIO;
+	        }
 
 	        game.currentHeight = window.innerHeight;
 	        // resize the width in proportion
 	        // to the new height
 	        game.currentWidth = game.currentHeight * game.RATIO;
-
-	        // this will create some extra space on the
-	        // page, allowing us to scroll pass
-	        // the address bar, and thus hide it.
-	        if (game.android || game.ios) {
-	            document.body.style.height = (window.innerHeight + 50) + 'px';
-	        }
 
 	        // set the new canvas style width & height
 	        // note: our canvas is still 320x480 but
@@ -217,13 +214,6 @@
 	        // the screen
 	        game.offset.top = game.canvas.offsetTop;
 	        game.offset.left = game.canvas.offsetLeft;
-
-	        // we use a timeout here as some mobile
-	        // browsers won't scroll if there is not
-	        // a small delay
-	        window.setTimeout(function() {
-	            window.scrollTo(0,1);
-	        }, 1);
 	    },
 
 	    // this is where all entities will be moved
@@ -233,7 +223,7 @@
 	        var checkCollision = false; // we only need to check for a collision if the user tapped on this game tick
 	        var time = Date.now() * 0.002;
 
-	        game.blowing = Math.sin(time * 0.5) > 0;
+	        game.blowing = Math.sin(time * config.timeOfBlowing) > 0; // используется для синхронизации насоса и шарика
 	        game.artifactCrashed = false;
 
 	        // decrease our nextBubble counter
@@ -298,8 +288,7 @@
 	        // update wave offset
 	        // feel free to play with these values for
 	        // either slower or faster waves
-	        game.wave.time = Date.now() * 0.002;
-	        game.wave.offset = Math.sin(game.wave.time * 0.8) * 5;
+	        game.wave.offset = Math.sin(time * game.wave.sinTime) * game.wave.rangeIndex;
 
 	        // calculate accuracy
 	        game.score.accuracy = (game.score.hit / game.score.taps) * 100;
@@ -314,7 +303,10 @@
 	    render: function() {
 	        var i;
 
-	        Draw.rect(game, 0, 0, game.WIDTH, game.HEIGHT, game.bgColor);
+	        Draw.rect(game, 0, 0, game.WIDTH, game.HEIGHT, config.bgColor);
+	        Draw.rect(game, 0, game.HEIGHT - config.groundUpWidth - config.groundDownWidth, game.WIDTH, config.groundUpWidth, config.groundColorUp);
+	        Draw.rect(game, 0, game.HEIGHT - config.groundDownWidth, game.WIDTH, config.groundDownWidth, config.groundColorDown);
+	        //Draw.rect(game, )
 	        game.pump.render();
 	        game.balloon.render();
 
@@ -333,6 +325,8 @@
 	            var collides = collidesBalloon(game.entities[i], game.balloon, game);
 	            if (collides) {
 	                window.cancelAnimationFrame(game.animId);
+
+	                // show next layer
 	            }
 
 	            game.entities[i].render();
@@ -356,6 +350,7 @@
 	        game.render();
 	    },
 
+	    // helper to add particles for artifacts
 	    addParticles: function(artifact, radius, strength) {
 	        for (var n = 0; n < 5; n +=1 ) {
 	            game.entities.push(new Particle(
@@ -378,6 +373,76 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = {
+	    //
+	    // общеигровые настройки
+	    //
+
+	    width: 640, // ширина канваса
+	    height: 960, // высота
+
+	    // цвет фона
+	    bgColor: '#6ee5dd',
+	    groundColorUp: '#00a651',
+	    groundColorDown: '#7cc576',
+	    hoseColor: '#f26122',
+
+	    groundUpWidth: 10,
+	    groundDownWidth: 20,
+
+	    // времени до появления первого артифакта (условные единицы)
+	    firstArtifact: 100,
+
+	    // параметры для облаков вверху экрана
+	    wave: {
+	        x: -25, // x coord of first circle
+	        y: -40, // y coord of first circle
+	        r: 50, // circle radius
+	        time: 0, // we'll use this in calculating the sine wave
+	        offset: 0, // this will be the sine wave offset
+	        sinTime: 0.8, // коэффициент для синусоиды (меньше значение - дольше интервал)
+	        rangeIndex: 10 // коэффициент насколько сильно будут качаться облака (больше значение - больше дистанция)
+	    },
+
+	    // коэффициент для синусоиды (меньше значение - дольше интервал накачивания и спускания)
+	    timeOfBlowing: 0.5,
+
+
+	    //
+	    // настройки шарика
+	    //
+
+	    balloon: {
+	        // интенсивность надувания шарика
+	        blowingSpeed: 0.2,
+	        // коэффициент уменьшения шарика для начала игры
+	        minIndex: 0.2,
+	        // коэффициент сдутия шарика (blowingSpeed * unblowingIndex)
+	        unblowingIndex: 0.3,
+	        // как широко будет раскачиваться
+	        rangeIndex: 10
+	    },
+
+	    //
+	    // настройка артифакта
+	    //
+
+	    artifact: {
+	        // разброс скорости в пределах которого она может меняться
+	        speedRange: 4,
+	        // количество артифактов
+	        quantity: 4,
+	        // высота появления артифактов: heightRange * random + heightOfAppearing
+	        heightOfAppearing: -100,
+	        heightRange: -100,
+	        waveRange: 5
+	    }
+	};
+
+/***/ },
+/* 3 */
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = {
 	    x: 0,
 	    y: 0,
 	    tapped :false,
@@ -391,35 +456,38 @@
 	};
 
 /***/ },
-/* 3 */
+/* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var Draw = __webpack_require__(7);
+	var Draw = __webpack_require__(8);
+	var config = __webpack_require__(2);
 
 	module.exports = function(game) {
 	    var artifact = this;
 	    
 	    artifact.type = 'artifact';
-	    artifact.speed = (Math.random() * 3) + 1;
+	    artifact.speed = (Math.random() * config.artifact.speedRange) + 1;
 	    artifact.remove = false;
 
 	    // we have four types of pictures, named from 1 to 4.
-	    var picNum = (Math.floor(Math.random() * 4) + 1);
+	    var picNum = (Math.floor(Math.random() * config.artifact.quantity) + 1);
 
 	    artifact.pic = new Image();
 	    artifact.pic.src = './i/item-' + picNum + '.png';
 
 	    artifact.pic.onload = function() {
+	        // todo: clear the division
 	        artifact.w = artifact.pic.naturalWidth / 1.5;
 	        artifact.h = artifact.pic.naturalHeight / 1.5;
+
 	        artifact.r = Math.min(artifact.w, artifact.h) / 2;
 
-	        artifact.x = (Math.random() * (game.WIDTH) - artifact.w / 2);
-	        artifact.y = -(Math.random() * 100) - 100;
+	        artifact.x = Math.random() * game.WIDTH - artifact.w / 2;
+	        artifact.y = Math.random() * config.artifact.heightRange + config.artifact.heightOfAppearing;
 
 	        // the amount by which the bubble
 	        // will move from side to side
-	        artifact.waveSize = 5 + artifact.w / 2;
+	        artifact.waveSize = config.artifact.waveRange + artifact.w / 2;
 	        // we need to remember the original
 	        // x position for our sine wave calculation
 	        artifact.initX = artifact.x;
@@ -450,30 +518,29 @@
 	};
 
 /***/ },
-/* 4 */
+/* 5 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var Draw = __webpack_require__(7);
+	var Draw = __webpack_require__(8);
+	var config = __webpack_require__(2);
 
 	module.exports = function (game) {
 	    var balloon = this;
 
 	    balloon.type = 'balloon';
 
-	    // speed of blowing
-	    var delta = 0.2;
-	    var minIndex = 0.2;
-
 	    balloon.pic = new Image();
 	    balloon.pic.src = './i/shar-size-1.png';
 
+	     var groundWidth = config.groundUpWidth + config.groundDownWidth;
+
 	    balloon.pic.onload = function () {
-	        balloon.w = balloon.pic.naturalWidth * minIndex;
-	        balloon.h = balloon.pic.naturalHeight * minIndex;
+	        balloon.w = balloon.pic.naturalWidth * config.balloon.minIndex;
+	        balloon.h = balloon.pic.naturalHeight * config.balloon.minIndex;
 
 	        // center the balloon
 	        balloon.x = game.WIDTH / 2 - balloon.w / 2;
-	        balloon.y = game.HEIGHT - balloon.h;
+	        balloon.y = game.HEIGHT - balloon.h - groundWidth;
 
 	        balloon.ratio = balloon.h / balloon.w;
 	        balloon.r = balloon.w / 2; // we know that width < height
@@ -485,17 +552,17 @@
 	        var time = Date.now() * 0.002;
 
 	        if (game.blowing) {
-	            balloon.w += delta;
-	            balloon.h += (balloon.ratio * delta);
+	            balloon.w += config.balloon.blowingSpeed;
+	            balloon.h += (balloon.ratio * config.balloon.blowingSpeed);
 	            balloon.r = balloon.w / 2;
 	        } else {
-	            balloon.w -= delta / 3;
-	            balloon.h -= (balloon.ratio * delta / 3);
+	            balloon.w -= config.balloon.blowingSpeed * config.balloon.unblowingIndex;
+	            balloon.h -= (balloon.ratio * config.balloon.blowingSpeed * config.balloon.unblowingIndex);
 	            balloon.r = balloon.w / 2;
 	        }
 
-	        balloon.x = 20 * Math.sin(time) + (game.WIDTH / 2 - balloon.w / 2);
-	        balloon.y = game.HEIGHT - balloon.h;
+	        balloon.x = config.balloon.rangeIndex * Math.sin(time) + (game.WIDTH / 2 - balloon.w / 2);
+	        balloon.y = game.HEIGHT - balloon.h - groundWidth;
 	    };
 
 	    balloon.render = function() {
@@ -504,10 +571,10 @@
 	};
 
 /***/ },
-/* 5 */
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var Draw = __webpack_require__(7);
+	var Draw = __webpack_require__(8);
 
 	module.exports = function(game, x, y) {
 	    var touch = this;
@@ -535,10 +602,10 @@
 	};
 
 /***/ },
-/* 6 */
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var Draw = __webpack_require__(7);
+	var Draw = __webpack_require__(8);
 
 	module.exports = function(game, x, y, r, col, strength) {
 	    var particle = this;
@@ -591,7 +658,7 @@
 	};
 
 /***/ },
-/* 7 */
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = {
@@ -625,7 +692,7 @@
 	};
 
 /***/ },
-/* 8 */
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = function(a, b) {
@@ -641,10 +708,10 @@
 	};
 
 /***/ },
-/* 9 */
+/* 10 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var Draw = __webpack_require__(7);
+	var Draw = __webpack_require__(8);
 
 	// a - artifact
 	// b - balloon
@@ -668,15 +735,15 @@
 	};
 
 /***/ },
-/* 10 */
+/* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var Draw = __webpack_require__(7);
+	var Draw = __webpack_require__(8);
+	var config = __webpack_require__(2);
 
 	module.exports = function (game) {
 	    var pump = this;
 
-	    var minIndex = 0.5;
 	    pump.type = 'pump';
 
 	    pump.pump1 = new Image();
@@ -685,22 +752,24 @@
 	    pump.pump2 = new Image();
 	    pump.pump2.src = './i/pump2.png';
 
+	    var groundWidth = config.groundUpWidth + config.groundDownWidth;
+
 	    pump.pump1.onload = function () {
-	        pump.pump1.w = pump.pump1.naturalWidth * minIndex;
-	        pump.pump1.h = pump.pump1.naturalHeight * minIndex;
+	        pump.pump1.w = pump.pump1.naturalWidth;
+	        pump.pump1.h = pump.pump1.naturalHeight;
 
 	        // use 'dx' instead of 'x' because pump.pump1 is picture object
 	        // and already has property 'x'
 	        pump.pump1.dx = game.WIDTH / 5 - pump.pump1.w / 2;
-	        pump.pump1.dy = game.HEIGHT - pump.pump1.h;
+	        pump.pump1.dy = game.HEIGHT - pump.pump1.h - groundWidth;
 	    };
 
 	    pump.pump2.onload = function () {
-	        pump.pump2.w = pump.pump2.naturalWidth * minIndex;
-	        pump.pump2.h = pump.pump2.naturalHeight * minIndex;
+	        pump.pump2.w = pump.pump2.naturalWidth;
+	        pump.pump2.h = pump.pump2.naturalHeight;
 
 	        pump.pump2.dx = game.WIDTH / 5 - pump.pump2.w / 2;
-	        pump.pump2.dy = game.HEIGHT - pump.pump2.h;
+	        pump.pump2.dy = game.HEIGHT - pump.pump2.h - groundWidth;
 	    };
 
 	    pump.update = function() {
@@ -708,7 +777,7 @@
 	        var time = Date.now() * 0.002;
 
 	        if (game.blowing) {
-	            pump.pump1.dy = 30 * Math.sin(time * 5) + game.HEIGHT - pump.pump1.h - 10;
+	            pump.pump1.dy = 30 * Math.sin(time * 5) + game.HEIGHT - pump.pump1.h - groundWidth - 40;
 	        }
 	    };
 

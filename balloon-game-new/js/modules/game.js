@@ -1,3 +1,4 @@
+var config = require('./config');
 var Input = require('./input');
 var Artifact = require('./artifact');
 var Balloon = require('./balloon');
@@ -9,11 +10,9 @@ var collidesBalloon = require('./collidesBalloon');
 var Pump = require('./pump');
 
 var game = {
-
-    // set up some inital values
-    WIDTH: 640,
-    HEIGHT:  1136,
-    bgColor: '#6ee5dd',
+//    // set up some inital values
+//    WIDTH: config.width,
+//    HEIGHT:  config.height,
     scale:  1,
     // the position of the canvas
     // in relation to the screen
@@ -22,7 +21,7 @@ var game = {
     entities: [],
     // the amount of game ticks until
     // we spawn a artifact
-    nextArtifact: 100,
+    nextArtifact: config.firstArtifact,
     blowing: false,
     // for tracking player's progress
     score: {
@@ -43,12 +42,24 @@ var game = {
     ios:  null,
 
     init: function() {
+        var wh = window.innerHeight;
+        var ww = window.innerWidth;
+
+        if (wh/ww < 1 || ww > 767) {
+            game.WIDTH = config.width;
+            game.HEIGHT = config.height;
+        } else {
+            game.WIDTH = ww * 2;
+            game.HEIGHT = wh * 2;
+        }
 
         // the proportion of width to height
         game.RATIO = game.WIDTH / game.HEIGHT;
+
         // these will change when the screen is resize
         game.currentWidth = game.WIDTH;
         game.currentHeight = game.HEIGHT;
+
         // this is our canvas element
         game.canvas = document.getElementsByTagName('canvas')[0];
         // it's important to set this
@@ -56,30 +67,20 @@ var game = {
         // default to 320x200
         game.canvas.width = game.WIDTH;
         game.canvas.height = game.HEIGHT;
+
         // the canvas context allows us to
         // interact with the canvas api
         game.ctx = game.canvas.getContext('2d');
-        // we need to sniff out android & ios
-        // so we can hide the address bar in
-        // our resize function
-        game.ua = navigator.userAgent.toLowerCase();
-        game.android = game.ua.indexOf('android') > -1 ? true : false;
-        game.ios = ( game.ua.indexOf('iphone') > -1 || game.ua.indexOf('ipad') > -1  ) ? true : false;
 
         // set up our wave effect
         // basically, a series of overlapping circles
         // across the top of screen
-        game.wave = {
-            x: -25, // x coord of first circle
-            y: -40, // y coord of first circle
-            r: 50, // circle radius
-            time: 0, // we'll use this in calculating the sine wave
-            offset: 0 // this will be the sine wave offset
-        };
+        game.wave = config.wave;
         // calculate how many circles we need to
         // cover the screen width
         game.wave.total = Math.ceil(game.WIDTH / game.wave.r) + 1;
 
+        // Шарик и насос
         game.balloon = new Balloon(game);
         game.pump = new Pump(game);
 
@@ -104,24 +105,20 @@ var game = {
 
         // we're ready to resize
         game.resize();
-
         game.loop();
     },
 
 
     resize: function() {
+        if (game.currentWidth > window.innerWidth) {
+            game.currentWidth = window.innerWidth;
+            game.currentHeight = game.currentWidth / game.RATIO;
+        }
 
         game.currentHeight = window.innerHeight;
         // resize the width in proportion
         // to the new height
         game.currentWidth = game.currentHeight * game.RATIO;
-
-        // this will create some extra space on the
-        // page, allowing us to scroll pass
-        // the address bar, and thus hide it.
-        if (game.android || game.ios) {
-            document.body.style.height = (window.innerHeight + 50) + 'px';
-        }
 
         // set the new canvas style width & height
         // note: our canvas is still 320x480 but
@@ -136,13 +133,6 @@ var game = {
         // the screen
         game.offset.top = game.canvas.offsetTop;
         game.offset.left = game.canvas.offsetLeft;
-
-        // we use a timeout here as some mobile
-        // browsers won't scroll if there is not
-        // a small delay
-        window.setTimeout(function() {
-            window.scrollTo(0,1);
-        }, 1);
     },
 
     // this is where all entities will be moved
@@ -152,7 +142,7 @@ var game = {
         var checkCollision = false; // we only need to check for a collision if the user tapped on this game tick
         var time = Date.now() * 0.002;
 
-        game.blowing = Math.sin(time * 0.5) > 0;
+        game.blowing = Math.sin(time * config.timeOfBlowing) > 0; // используется для синхронизации насоса и шарика
         game.artifactCrashed = false;
 
         // decrease our nextBubble counter
@@ -217,8 +207,7 @@ var game = {
         // update wave offset
         // feel free to play with these values for
         // either slower or faster waves
-        game.wave.time = Date.now() * 0.002;
-        game.wave.offset = Math.sin(game.wave.time * 0.8) * 5;
+        game.wave.offset = Math.sin(time * game.wave.sinTime) * game.wave.rangeIndex;
 
         // calculate accuracy
         game.score.accuracy = (game.score.hit / game.score.taps) * 100;
@@ -233,7 +222,10 @@ var game = {
     render: function() {
         var i;
 
-        Draw.rect(game, 0, 0, game.WIDTH, game.HEIGHT, game.bgColor);
+        Draw.rect(game, 0, 0, game.WIDTH, game.HEIGHT, config.bgColor);
+        Draw.rect(game, 0, game.HEIGHT - config.groundUpWidth - config.groundDownWidth, game.WIDTH, config.groundUpWidth, config.groundColorUp);
+        Draw.rect(game, 0, game.HEIGHT - config.groundDownWidth, game.WIDTH, config.groundDownWidth, config.groundColorDown);
+        //Draw.rect(game, )
         game.pump.render();
         game.balloon.render();
 
@@ -252,6 +244,8 @@ var game = {
             var collides = collidesBalloon(game.entities[i], game.balloon, game);
             if (collides) {
                 window.cancelAnimationFrame(game.animId);
+
+                // show next layer
             }
 
             game.entities[i].render();
@@ -275,6 +269,7 @@ var game = {
         game.render();
     },
 
+    // helper to add particles for artifacts
     addParticles: function(artifact, radius, strength) {
         for (var n = 0; n < 5; n +=1 ) {
             game.entities.push(new Particle(
