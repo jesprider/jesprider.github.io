@@ -14,6 +14,7 @@ module.exports = {
 
     groundUpWidth: 10,
     groundDownWidth: 20,
+    groundWidth: 30,
 
     // времени до появления первого артифакта (условные единицы)
     firstArtifact: 100,
@@ -32,20 +33,19 @@ module.exports = {
     // коэффициент для синусоиды (меньше значение - дольше интервал накачивания и спускания)
     timeOfBlowing: 0.5,
 
-
     //
     // настройки шарика
     //
 
     balloon: {
         // интенсивность надувания шарика
-        blowingSpeed: 0.2,
+        blowingSpeed: 0.3,
         // коэффициент уменьшения шарика для начала игры
         minIndex: 0.2,
         // коэффициент сдутия шарика (blowingSpeed * unblowingIndex)
         unblowingIndex: 0.3,
         // как широко будет раскачиваться
-        rangeIndex: 10
+        waveRange: 5
     },
 
     //
@@ -54,12 +54,17 @@ module.exports = {
 
     artifact: {
         // разброс скорости в пределах которого она может меняться
-        speedRange: 4,
+        speedRange: 8,
         // количество артифактов
         quantity: 4,
         // высота появления артифактов: heightRange * random + heightOfAppearing
         heightOfAppearing: -100,
         heightRange: -100,
-        waveRange: 5
+        waveRange: 20
+    },
+
+    pump: {
+        animationSpeed: 5,
+        waveRange: 30
     }
 };

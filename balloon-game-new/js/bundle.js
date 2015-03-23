@@ -91,10 +91,11 @@
 	var Pump = __webpack_require__(11);
 
 	var game = {
-	//    // set up some inital values
-	//    WIDTH: config.width,
-	//    HEIGHT:  config.height,
-	    scale:  1,
+	    // set up some inital values
+	    WIDTH: config.width,
+	    HEIGHT: config.height,
+	    scale: 1,
+	    imageScale: 1,
 	    // the position of the canvas
 	    // in relation to the screen
 	    offset: {top: 0, left: 0},
@@ -126,21 +127,19 @@
 	        var wh = window.innerHeight;
 	        var ww = window.innerWidth;
 
-	        if (wh/ww < 1 || ww > 767) {
-	            game.WIDTH = config.width;
-	            game.HEIGHT = config.height;
-	        } else {
+	        if (wh/ww > 1 && ww < 767) {
 	            game.WIDTH = ww * 2;
 	            game.HEIGHT = wh * 2;
 	        }
 
+	        // will think that 640 - normal height of canvas
+	        game.imageScale = Math.min(wh / 640, 1);
+
 	        // the proportion of width to height
 	        game.RATIO = game.WIDTH / game.HEIGHT;
-
 	        // these will change when the screen is resize
 	        game.currentWidth = game.WIDTH;
 	        game.currentHeight = game.HEIGHT;
-
 	        // this is our canvas element
 	        game.canvas = document.getElementsByTagName('canvas')[0];
 	        // it's important to set this
@@ -148,7 +147,6 @@
 	        // default to 320x200
 	        game.canvas.width = game.WIDTH;
 	        game.canvas.height = game.HEIGHT;
-
 	        // the canvas context allows us to
 	        // interact with the canvas api
 	        game.ctx = game.canvas.getContext('2d');
@@ -306,7 +304,8 @@
 	        Draw.rect(game, 0, 0, game.WIDTH, game.HEIGHT, config.bgColor);
 	        Draw.rect(game, 0, game.HEIGHT - config.groundUpWidth - config.groundDownWidth, game.WIDTH, config.groundUpWidth, config.groundColorUp);
 	        Draw.rect(game, 0, game.HEIGHT - config.groundDownWidth, game.WIDTH, config.groundDownWidth, config.groundColorDown);
-	        //Draw.rect(game, )
+	        Draw.rect(game, game.WIDTH/5 - 25, game.HEIGHT - config.groundUpWidth - config.groundDownWidth - 4, game.WIDTH/2 - game.WIDTH/5, 4, config.hoseColor);
+	        Draw.rect(game, game.WIDTH/2 - 25, game.HEIGHT - config.groundUpWidth - config.groundDownWidth - 10, 50, 10, config.hoseColor);
 	        game.pump.render();
 	        game.balloon.render();
 
@@ -333,8 +332,8 @@
 	        }
 
 	        // display scores
-	        Draw.text(game, 'Cakes killed: ' + game.score.hit, 20, 30, 14, '#fff');
-	        Draw.text(game, 'Accuracy: ' + game.score.accuracy + '%', 180, 30, 14, '#fff');
+	        Draw.text(game, 'Cakes killed: ' + game.score.hit, 20, 30, 24, '#fff');
+	        Draw.text(game, 'Accuracy: ' + game.score.accuracy + '%', game.WIDTH - 220, 30, 24, '#fff');
 	    },
 
 
@@ -388,6 +387,7 @@
 
 	    groundUpWidth: 10,
 	    groundDownWidth: 20,
+	    groundWidth: 30,
 
 	    // времени до появления первого артифакта (условные единицы)
 	    firstArtifact: 100,
@@ -406,20 +406,19 @@
 	    // коэффициент для синусоиды (меньше значение - дольше интервал накачивания и спускания)
 	    timeOfBlowing: 0.5,
 
-
 	    //
 	    // настройки шарика
 	    //
 
 	    balloon: {
 	        // интенсивность надувания шарика
-	        blowingSpeed: 0.2,
+	        blowingSpeed: 0.3,
 	        // коэффициент уменьшения шарика для начала игры
 	        minIndex: 0.2,
 	        // коэффициент сдутия шарика (blowingSpeed * unblowingIndex)
 	        unblowingIndex: 0.3,
 	        // как широко будет раскачиваться
-	        rangeIndex: 10
+	        waveRange: 5
 	    },
 
 	    //
@@ -428,13 +427,18 @@
 
 	    artifact: {
 	        // разброс скорости в пределах которого она может меняться
-	        speedRange: 4,
+	        speedRange: 8,
 	        // количество артифактов
 	        quantity: 4,
 	        // высота появления артифактов: heightRange * random + heightOfAppearing
 	        heightOfAppearing: -100,
 	        heightRange: -100,
-	        waveRange: 5
+	        waveRange: 20
+	    },
+
+	    pump: {
+	        animationSpeed: 5,
+	        waveRange: 30
 	    }
 	};
 
@@ -473,12 +477,11 @@
 	    var picNum = (Math.floor(Math.random() * config.artifact.quantity) + 1);
 
 	    artifact.pic = new Image();
-	    artifact.pic.src = './i/item-' + picNum + '.png';
+	    artifact.pic.src = './i/a' + picNum + '.png';
 
 	    artifact.pic.onload = function() {
-	        // todo: clear the division
-	        artifact.w = artifact.pic.naturalWidth / 1.5;
-	        artifact.h = artifact.pic.naturalHeight / 1.5;
+	        artifact.w = artifact.pic.naturalWidth * game.imageScale;
+	        artifact.h = artifact.pic.naturalHeight * game.imageScale;
 
 	        artifact.r = Math.min(artifact.w, artifact.h) / 2;
 
@@ -487,7 +490,7 @@
 
 	        // the amount by which the bubble
 	        // will move from side to side
-	        artifact.waveSize = config.artifact.waveRange + artifact.w / 2;
+	        artifact.waveRange = config.artifact.waveRange + artifact.w / 2;
 	        // we need to remember the original
 	        // x position for our sine wave calculation
 	        artifact.initX = artifact.x;
@@ -500,10 +503,10 @@
 
 	        artifact.y += artifact.speed;
 	        // the x coord to follow a sine wave
-	        artifact.x = artifact.waveSize * Math.sin(time) + artifact.initX;
+	        artifact.x = artifact.waveRange * Math.sin(time) + artifact.initX;
 
 	        // if offscreen flag for removal
-	        if (artifact.y > (game.HEIGHT - artifact.h + 10)) {
+	        if (artifact.y > (game.HEIGHT - config.groundWidth - artifact.h + 10)) {
 	            game.artifactCrashed = true;
 	            game.score.escaped += 1; // update score
 	            artifact.remove = true;
@@ -540,7 +543,7 @@
 
 	        // center the balloon
 	        balloon.x = game.WIDTH / 2 - balloon.w / 2;
-	        balloon.y = game.HEIGHT - balloon.h - groundWidth;
+	        balloon.y = game.HEIGHT - balloon.h - groundWidth - 10;
 
 	        balloon.ratio = balloon.h / balloon.w;
 	        balloon.r = balloon.w / 2; // we know that width < height
@@ -561,8 +564,8 @@
 	            balloon.r = balloon.w / 2;
 	        }
 
-	        balloon.x = config.balloon.rangeIndex * Math.sin(time) + (game.WIDTH / 2 - balloon.w / 2);
-	        balloon.y = game.HEIGHT - balloon.h - groundWidth;
+	        balloon.x = config.balloon.waveRange * Math.sin(time) + (game.WIDTH / 2 - balloon.w / 2);
+	        balloon.y = game.HEIGHT - balloon.h - groundWidth - 10;
 	    };
 
 	    balloon.render = function() {
@@ -584,7 +587,7 @@
 	    touch.y = y;             // the y coordinate
 	    touch.r = 5;             // the radius
 	    touch.opacity = 1;       // inital opacity. the dot will fade out
-	    touch.fade = 0.05;       // amount by which to fade on each game tick
+	    touch.fade = 0.1;       // amount by which to fade on each game tick
 	    // touch.remove = false;    // flag for removing touch entity. balloon.update
 	                            // will take care of touch
 
@@ -596,7 +599,7 @@
 	    };
 
 	    touch.render = function() {
-	        Draw.circle(game, touch.x, touch.y, touch.r, 'rgba(255,0,0,'+touch.opacity+')');
+	        Draw.circle(game, touch.x, touch.y, touch.r, 'rgba(0,0,255,'+touch.opacity+')');
 	    };
 
 	};
@@ -717,7 +720,7 @@
 	// b - balloon
 	module.exports = function(a, b, game) {
 	    var centerArtifactX = a.x + a.w / 2;
-	    var centerArtifactY = a.y + a.h / 2;
+	    var centerArtifactY = a.y + a.h - a.r;
 
 	    // balloon center for circle
 	    var centerBalloonX = b.x + b.r;
@@ -731,7 +734,7 @@
 	//    Draw.circle(game, centerArtifactX, centerArtifactY, a.r, 'red');
 	//    Draw.circle(game, centerBalloonX, centerBalloonY, b.r, 'blue');
 
-	    return distance_squared - radii_squared < 10;
+	    return distance_squared - radii_squared < 20;
 	};
 
 /***/ },
@@ -752,24 +755,22 @@
 	    pump.pump2 = new Image();
 	    pump.pump2.src = './i/pump2.png';
 
-	    var groundWidth = config.groundUpWidth + config.groundDownWidth;
-
 	    pump.pump1.onload = function () {
-	        pump.pump1.w = pump.pump1.naturalWidth;
-	        pump.pump1.h = pump.pump1.naturalHeight;
+	        pump.pump1.w = pump.pump1.naturalWidth * game.imageScale;
+	        pump.pump1.h = pump.pump1.naturalHeight * game.imageScale;
 
 	        // use 'dx' instead of 'x' because pump.pump1 is picture object
 	        // and already has property 'x'
 	        pump.pump1.dx = game.WIDTH / 5 - pump.pump1.w / 2;
-	        pump.pump1.dy = game.HEIGHT - pump.pump1.h - groundWidth;
+	        pump.pump1.dy = game.HEIGHT - pump.pump1.h - config.groundWidth;
 	    };
 
 	    pump.pump2.onload = function () {
-	        pump.pump2.w = pump.pump2.naturalWidth;
-	        pump.pump2.h = pump.pump2.naturalHeight;
+	        pump.pump2.w = pump.pump2.naturalWidth * game.imageScale;
+	        pump.pump2.h = pump.pump2.naturalHeight * game.imageScale;
 
 	        pump.pump2.dx = game.WIDTH / 5 - pump.pump2.w / 2;
-	        pump.pump2.dy = game.HEIGHT - pump.pump2.h - groundWidth;
+	        pump.pump2.dy = game.HEIGHT - pump.pump2.h - config.groundWidth;
 	    };
 
 	    pump.update = function() {
@@ -777,7 +778,8 @@
 	        var time = Date.now() * 0.002;
 
 	        if (game.blowing) {
-	            pump.pump1.dy = 30 * Math.sin(time * 5) + game.HEIGHT - pump.pump1.h - groundWidth - 40;
+	            pump.pump1.dy = config.pump.waveRange * game.imageScale * Math.sin(time * config.pump.animationSpeed) +
+	                            game.HEIGHT - pump.pump1.h - config.groundWidth - pump.pump1.w/2;
 	        }
 	    };
 

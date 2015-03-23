@@ -17,7 +17,7 @@ module.exports = function (game) {
 
         // center the balloon
         balloon.x = game.WIDTH / 2 - balloon.w / 2;
-        balloon.y = game.HEIGHT - balloon.h - groundWidth;
+        balloon.y = game.HEIGHT - balloon.h - groundWidth - 10;
 
         balloon.ratio = balloon.h / balloon.w;
         balloon.r = balloon.w / 2; // we know that width < height
@@ -38,8 +38,8 @@ module.exports = function (game) {
             balloon.r = balloon.w / 2;
         }
 
-        balloon.x = config.balloon.rangeIndex * Math.sin(time) + (game.WIDTH / 2 - balloon.w / 2);
-        balloon.y = game.HEIGHT - balloon.h - groundWidth;
+        balloon.x = config.balloon.waveRange * Math.sin(time) + (game.WIDTH / 2 - balloon.w / 2);
+        balloon.y = game.HEIGHT - balloon.h - groundWidth - 10;
     };
 
     balloon.render = function() {

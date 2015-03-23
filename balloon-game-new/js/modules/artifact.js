@@ -12,12 +12,11 @@ module.exports = function(game) {
     var picNum = (Math.floor(Math.random() * config.artifact.quantity) + 1);
 
     artifact.pic = new Image();
-    artifact.pic.src = './i/item-' + picNum + '.png';
+    artifact.pic.src = './i/a' + picNum + '.png';
 
     artifact.pic.onload = function() {
-        // todo: clear the division
-        artifact.w = artifact.pic.naturalWidth / 1.5;
-        artifact.h = artifact.pic.naturalHeight / 1.5;
+        artifact.w = artifact.pic.naturalWidth * game.imageScale;
+        artifact.h = artifact.pic.naturalHeight * game.imageScale;
 
         artifact.r = Math.min(artifact.w, artifact.h) / 2;
 
@@ -26,7 +25,7 @@ module.exports = function(game) {
 
         // the amount by which the bubble
         // will move from side to side
-        artifact.waveSize = config.artifact.waveRange + artifact.w / 2;
+        artifact.waveRange = config.artifact.waveRange + artifact.w / 2;
         // we need to remember the original
         // x position for our sine wave calculation
         artifact.initX = artifact.x;
@@ -39,10 +38,10 @@ module.exports = function(game) {
 
         artifact.y += artifact.speed;
         // the x coord to follow a sine wave
-        artifact.x = artifact.waveSize * Math.sin(time) + artifact.initX;
+        artifact.x = artifact.waveRange * Math.sin(time) + artifact.initX;
 
         // if offscreen flag for removal
-        if (artifact.y > (game.HEIGHT - artifact.h + 10)) {
+        if (artifact.y > (game.HEIGHT - config.groundWidth - artifact.h + 10)) {
             game.artifactCrashed = true;
             game.score.escaped += 1; // update score
             artifact.remove = true;

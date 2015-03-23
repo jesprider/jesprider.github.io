@@ -4,7 +4,7 @@ var Draw = require('./draw');
 // b - balloon
 module.exports = function(a, b, game) {
     var centerArtifactX = a.x + a.w / 2;
-    var centerArtifactY = a.y + a.h / 2;
+    var centerArtifactY = a.y + a.h - a.r;
 
     // balloon center for circle
     var centerBalloonX = b.x + b.r;
@@ -18,5 +18,5 @@ module.exports = function(a, b, game) {
 //    Draw.circle(game, centerArtifactX, centerArtifactY, a.r, 'red');
 //    Draw.circle(game, centerBalloonX, centerBalloonY, b.r, 'blue');
 
-    return distance_squared - radii_squared < 10;
+    return distance_squared - radii_squared < 20;
 };

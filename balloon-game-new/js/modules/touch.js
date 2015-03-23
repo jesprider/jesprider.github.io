@@ -8,7 +8,7 @@ module.exports = function(game, x, y) {
     touch.y = y;             // the y coordinate
     touch.r = 5;             // the radius
     touch.opacity = 1;       // inital opacity. the dot will fade out
-    touch.fade = 0.05;       // amount by which to fade on each game tick
+    touch.fade = 0.1;       // amount by which to fade on each game tick
     // touch.remove = false;    // flag for removing touch entity. balloon.update
                             // will take care of touch
 
@@ -20,7 +20,7 @@ module.exports = function(game, x, y) {
     };
 
     touch.render = function() {
-        Draw.circle(game, touch.x, touch.y, touch.r, 'rgba(255,0,0,'+touch.opacity+')');
+        Draw.circle(game, touch.x, touch.y, touch.r, 'rgba(0,0,255,'+touch.opacity+')');
     };
 
 };

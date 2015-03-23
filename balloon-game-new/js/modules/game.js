@@ -10,10 +10,11 @@ var collidesBalloon = require('./collidesBalloon');
 var Pump = require('./pump');
 
 var game = {
-//    // set up some inital values
-//    WIDTH: config.width,
-//    HEIGHT:  config.height,
-    scale:  1,
+    // set up some inital values
+    WIDTH: config.width,
+    HEIGHT: config.height,
+    scale: 1,
+    imageScale: 1,
     // the position of the canvas
     // in relation to the screen
     offset: {top: 0, left: 0},
@@ -45,21 +46,19 @@ var game = {
         var wh = window.innerHeight;
         var ww = window.innerWidth;
 
-        if (wh/ww < 1 || ww > 767) {
-            game.WIDTH = config.width;
-            game.HEIGHT = config.height;
-        } else {
+        if (wh/ww > 1 && ww < 767) {
             game.WIDTH = ww * 2;
             game.HEIGHT = wh * 2;
         }
 
+        // will think that 640 - normal height of canvas
+        game.imageScale = Math.min(wh / 640, 1);
+
         // the proportion of width to height
         game.RATIO = game.WIDTH / game.HEIGHT;
-
         // these will change when the screen is resize
         game.currentWidth = game.WIDTH;
         game.currentHeight = game.HEIGHT;
-
         // this is our canvas element
         game.canvas = document.getElementsByTagName('canvas')[0];
         // it's important to set this
@@ -67,7 +66,6 @@ var game = {
         // default to 320x200
         game.canvas.width = game.WIDTH;
         game.canvas.height = game.HEIGHT;
-
         // the canvas context allows us to
         // interact with the canvas api
         game.ctx = game.canvas.getContext('2d');
@@ -225,7 +223,8 @@ var game = {
         Draw.rect(game, 0, 0, game.WIDTH, game.HEIGHT, config.bgColor);
         Draw.rect(game, 0, game.HEIGHT - config.groundUpWidth - config.groundDownWidth, game.WIDTH, config.groundUpWidth, config.groundColorUp);
         Draw.rect(game, 0, game.HEIGHT - config.groundDownWidth, game.WIDTH, config.groundDownWidth, config.groundColorDown);
-        //Draw.rect(game, )
+        Draw.rect(game, game.WIDTH/5 - 25, game.HEIGHT - config.groundUpWidth - config.groundDownWidth - 4, game.WIDTH/2 - game.WIDTH/5, 4, config.hoseColor);
+        Draw.rect(game, game.WIDTH/2 - 25, game.HEIGHT - config.groundUpWidth - config.groundDownWidth - 10, 50, 10, config.hoseColor);
         game.pump.render();
         game.balloon.render();
 
@@ -252,8 +251,8 @@ var game = {
         }
 
         // display scores
-        Draw.text(game, 'Cakes killed: ' + game.score.hit, 20, 30, 14, '#fff');
-        Draw.text(game, 'Accuracy: ' + game.score.accuracy + '%', 180, 30, 14, '#fff');
+        Draw.text(game, 'Cakes killed: ' + game.score.hit, 20, 30, 24, '#fff');
+        Draw.text(game, 'Accuracy: ' + game.score.accuracy + '%', game.WIDTH - 220, 30, 24, '#fff');
     },
 
 
