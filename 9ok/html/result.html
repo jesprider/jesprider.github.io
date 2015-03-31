@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+    <meta http-equiv='X-UA-Compatible' content='IE=10'>
+    <meta name='viewport' content='width=device-width,initial-scale=1,user-scalable=no'>
+	<title>День рождения ОК!</title>
+
+    <meta property="og:title" content="Одноклассникам 9 лет!" />
+    <meta property="og:description" content="Надуй свой шар." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="http://9.ok.ru" />
+
+    <style type="text/css">
+        html, body {
+            height: 100%;
+            }
+
+        body {
+            position: relative;
+            margin: 0;
+            padding: 1em;
+            min-height: 100%;
+            min-width: 200px;
+
+            font: normal medium/1.2 Helvetica, sans-serif;
+            color: #000;
+            background-color: #9ed8d4;
+            }
+
+        img, a {
+            border: none;
+            outline: none;
+            }
+
+        .tr-t {
+            width: 50%;
+            height: 0;
+            padding-left: 50%;
+            padding-bottom: 80px;
+            overflow: hidden;
+            }
+
+        .tr-t div {
+            width: 0;
+            height: 0;
+            margin-left: -600px;
+            border-left: 600px solid transparent;
+            border-right: 600px solid transparent;
+            border-bottom: 80px solid #fff;
+            }
+
+        .tr-b {
+            width: 50%;
+            height: 0;
+            padding-left: 50%;
+            padding-top: 80px;
+            padding-bottom: 1em;
+            overflow: hidden;
+            }
+
+        .tr-b div {
+            width: 0;
+            height: 0;
+            margin-left: -600px;
+            margin-top: -80px;
+
+            border-left: 600px solid transparent;
+            border-right: 600px solid transparent;
+            border-top: 80px solid #fff;
+            }
+
+        .page {
+            position: relative;
+            text-align: center;
+            background-color: #fff;
+            -webkit-tap-highlight-color: transparent;
+            }
+
+        .content {
+            display: inline-block;
+            margin-top: -30px;
+            width: 100%;
+            }
+
+        .animal {
+            display: none;
+            width: 50%;
+            min-width: 200px;
+            max-width: 300px;
+            }
+
+        .btn img {
+            width: 54px;
+            }
+
+        .tx {
+            margin: 0 auto;
+            padding: 0 1em .5em;
+            font-size: 1.2em;
+            }
+
+
+        .tx.__h {
+            padding-bottom: 1em;
+            color: #f26122;
+            }
+        .tx.__sub {
+            padding-top: 1em;
+            color: #138582;
+            }
+
+    </style>
+</head>
+<body>
+<!-- Rating@Mail.ru counter -->
+<script type="text/javascript">
+var _tmr = _tmr || [];
+_tmr.push({id: "2637952", type: "pageView", start: (new Date()).getTime()});
+(function (d, w) {
+   var ts = d.createElement("script"); ts.type = "text/javascript"; ts.async = true;
+   ts.src = (d.location.protocol == "https:" ? "https:" : "http:") + "//top-fwz1.mail.ru/js/code.js";
+   var f = function () {var s = d.getElementsByTagName("script")[0]; s.parentNode.insertBefore(ts, s);};
+   if (w.opera == "[object Opera]") { d.addEventListener("DOMContentLoaded", f, false); } else { f(); }
+})(document, window);
+</script><noscript><div style="position:absolute;left:-10000px;">
+<img src="//top-fwz1.mail.ru/counter?id=2637952;js=na" style="border:0;" height="1" width="1" alt="Рейтинг@Mail.ru" />
+</div></noscript>
+<!-- //Rating@Mail.ru counter -->
+
+<script>
+    var statuses = [
+        {html: 'hamster', text: 'атлетичного хомячка'},
+        {html: 'hedgehog', text: 'душевного ежа'},
+        {html: 'squirrel', text: 'прожорливую белку'},
+        {html: 'cat', text: 'мартовского кота'},
+        {html: 'enot', text: 'пугливого енота'},
+        {html: 'dog', text: 'благородную собаку'},
+        {html: 'orangutang', text: 'позитивного орангутана'},
+        {html: 'kaban', text: 'дерзкого кабана'},
+        {html: 'lion', text: 'импозантного льва'},
+        {html: 'bear', text: 'находчивого медведя'},
+        {html: 'morj', text: 'сытого моржа'},
+        {html: 'elephant', text: 'удивленного слона'},
+        {html: 'whale', text: 'сурового кита'},
+        {html: 'godzilla', text: 'одинокого Годзиллу'}
+    ];
+
+    var resultIndex = +document.location.search.split('=')[1] || 0;
+    var sharingPage = 'http://9.ok.ru/share/' + statuses[resultIndex].html + '.html';
+</script>
+
+<div class="tr-t"><div></div></div>
+
+<div class="page">
+    <div class="content">
+        <div class="tx __h">У меня получился шарик размером с&nbsp;<span id="animalName">...</span>!</div>
+        <img class="loader" id="loader" src="i/Process_64_ddd.gif" alt=""/>
+        <img class="animal" id="animalPic" src="" alt=""/>
+        <div class="tx __sub">Расскажи об этом друзьям!</div>
+
+        <script type="text/javascript" src="//yastatic.net/share/share.js" charset="utf-8"></script>
+        <div class="yashare-auto-init" id="shareBlock" data-yashareL10n="ru" data-yashareQuickServices="vkontakte,facebook,twitter,odnoklassniki,moimir" data-yashareTheme="counter"></div>
+
+        <div class="tx __sub">Или сыграй ещё раз:</div>
+        <a class="btn" href="game.html"><img src="i/btn_replay.jpeg" alt=""/></a>
+    </div>
+</div>
+
+<div class="tr-b"><div></div></div>
+
+<script>
+    var doc = document;
+    var animalName = doc.getElementById('animalName');
+    var animalPic = doc.getElementById('animalPic');
+    var shareBlock = doc.getElementById('shareBlock');
+    var loader = doc.getElementById('loader');
+
+    shareBlock.setAttribute('data-yashareLink', sharingPage);
+    loader.style.display = 'none';
+    animalName.innerText = statuses[resultIndex].text;
+    animalPic.src = 'i/animals/' + (resultIndex + 1) + '.png';
+    animalPic.style.display = 'inline-block';
+</script>
+
+</body>
+</html>
